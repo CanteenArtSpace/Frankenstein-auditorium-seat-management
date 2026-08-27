@@ -1,0 +1,1296 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Frankenstein Auditorium Seat Management</title>
+<style>
+    * { box-sizing: border-box; }
+    body {
+        margin: 0;
+        font-family: Arial, Helvetica, sans-serif;
+        background: #f4f5f7;
+        color: #222;
+    }
+    header {
+        background: #222;
+        color: white;
+        padding: 18px 25px;
+        text-align: center;
+    }
+    header h1 {
+        margin: 0;
+        font-size: 24px;
+    }
+    .dashboard {
+        display: flex;
+        justify-content: center;
+        gap: 12px;
+        flex-wrap: wrap;
+        padding: 15px;
+        background: white;
+        border-bottom: 1px solid #ddd;
+    }
+    .stat {
+        padding: 10px 18px;
+        border-radius: 8px;
+        font-weight: bold;
+        min-width: 130px;
+        text-align: center;
+    }
+    .available-stat { background: #ffffff; border: 1px solid #ccc; }
+    .pending-stat   { background: #ece75f; }  /* Online Pending */
+    .delivered-stat { background: #5ced73; }  /* Online Delivered */
+    .counter-stat   { background: #41fdfe; }  /* Counter Sold */
+    .total-money-stat { background: #ffe0b2; } /* Counter total */
+
+    .controls {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 10px;
+        flex-wrap: wrap;
+        padding: 15px;
+    }
+    button {
+        border: none;
+        padding: 11px 17px;
+        border-radius: 7px;
+        cursor: pointer;
+        font-size: 14px;
+        font-weight: bold;
+    }
+    button:hover { opacity: 0.85; }
+    .btn-dark   { background: #333;   color: white; }
+    .btn-green  { background: #16843d; color: white; }
+    .btn-orange { background: #e58a00; color: white; }
+    .btn-red    { background: #c62828; color: white; }
+
+    .search {
+        padding: 11px;
+        width: 260px;
+        border: 1px solid #bbb;
+        border-radius: 7px;
+        font-size: 14px;
+    }
+
+    .legend {
+        display: flex;
+        justify-content: center;
+        gap: 18px;
+        flex-wrap: wrap;
+        padding: 8px 15px 6px;
+    }
+    .legend-item {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 13px;
+    }
+    .legend-box {
+        width: 18px;
+        height: 18px;
+        border-radius: 4px;
+        border: 1px solid #999;
+    }
+    .legend-available { background: #ffffff; }
+    .legend-pending   { background: #ece75f; }
+    .legend-delivered { background: #5ced73; }
+    .legend-counter   { background: #41fdfe; }
+    .legend-blocked   { background: #9e9e9e; }
+
+    /* Ticket category legend (carpet zones) */
+    .ticket-legend {
+        display: flex;
+        justify-content: center;
+        gap: 18px;
+        flex-wrap: wrap;
+        padding: 0 15px 18px;
+        font-size: 13px;
+    }
+    .ticket-legend-item {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+    .ticket-legend-box {
+        width: 22px;
+        height: 12px;
+        border-radius: 4px;
+        border: 1px solid #999;
+    }
+
+    .auditorium {
+        width: 100%;
+        max-width: 900px;
+        margin: auto;
+        padding: 20px;
+    }
+    .screen {
+        width: 70%;
+        margin: 0 auto 20px;
+        padding: 10px;
+        text-align: center;
+        background: #ddd;
+        border-radius: 50% / 20%;
+        font-weight: bold;
+        letter-spacing: 3px;
+    }
+
+    .section-title {
+        text-align: center;
+        font-weight: bold;
+        margin: 10px 0;
+        color: #555;
+    }
+
+    .compact-row {
+        display: flex;
+        justify-content: center;
+        align-items: flex-start;
+        gap: 20px;
+        margin-bottom: 20px;
+    }
+
+    .row-labels {
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-start;
+        gap: 6px;
+        margin-right: 4px;
+        font-size: 14px;
+        line-height: 30px;
+        color: #333;
+        font-family: "Courier New", monospace;
+    }
+    .row-labels div {
+        height: 30px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0 6px;
+        border-radius: 4px;
+    }
+
+    /* Carpet / ticket category colors for rows */
+    .zone-500 { background: #ffe9b3; } /* gold-ish */
+    .zone-300 { background: #d6f7ff; } /* light teal/blue */
+    .zone-200 { background: #e3edff; } /* pale blue */
+    .zone-100 { background: #f3e5ff; } /* pale violet */
+
+    .seat-block {
+        display: grid;
+        grid-template-columns: repeat(9, 30px);
+        grid-auto-rows: 30px;
+        gap: 4px;
+    }
+
+    .block-gap { width: 60px; }
+
+    .seat {
+        width: 30px;
+        height: 30px;
+        border-radius: 6px 6px 4px 4px; /* subtle chair-like shape */
+        border: 1px solid rgba(0,0,0,0.35);
+        cursor: pointer;
+        position: relative;
+        transition: transform 0.1s, box-shadow 0.1s;
+        background: #ffffff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 9px;
+        font-family: "Courier New", monospace;
+        color: #222;
+        user-select: none;
+        box-shadow: 0 1px 0 rgba(0,0,0,0.25);
+    }
+    .seat::after {
+        /* little base under the chair */
+        content: "";
+        position: absolute;
+        bottom: -3px;
+        left: 5px;
+        right: 5px;
+        height: 3px;
+        border-radius: 0 0 3px 3px;
+        background: rgba(0,0,0,0.15);
+    }
+    .seat:hover {
+        transform: translateY(-2px) scale(1.06);
+        z-index: 5;
+        box-shadow: 0 3px 6px rgba(0,0,0,0.35);
+    }
+
+    .available        { background: #ffffff; color: #222; }
+    .online-pending   { background: #ece75f; color: #222; }
+    .online-delivered { background: #5ced73; color: #222; }
+    .counter-sold     { background: #41fdfe; color: #222; }
+    .blocked          { background: #9e9e9e; color: #fff; }
+
+    .seat.selected {
+        outline: 2px solid #000;
+        outline-offset: 1px;
+    }
+
+    .passage-label {
+        text-align: center;
+        margin: 10px 0 20px;
+        font-size: 12px;
+        letter-spacing: 1px;
+        color: #666;
+    }
+
+    .tooltip {
+        position: fixed;
+        display: none;
+        background: #222;
+        color: white;
+        padding: 10px 12px;
+        border-radius: 7px;
+        font-size: 13px;
+        line-height: 1.5;
+        max-width: 260px;
+        z-index: 1000;
+        pointer-events: none;
+        box-shadow: 0 4px 15px rgba(0,0,0,.3);
+    }
+
+    .search-results {
+        max-width: 600px;
+        margin: 0 auto 15px;
+        background: white;
+        border-radius: 8px;
+        padding: 10px;
+        display: none;
+        box-shadow: 0 2px 10px rgba(0,0,0,.1);
+    }
+    .search-result {
+        padding: 10px;
+        border-bottom: 1px solid #eee;
+        cursor: pointer;
+    }
+    .search-result:last-child {
+        border-bottom: none;
+    }
+    .search-result:hover { background: #f5f5f5; }
+
+    .modal-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(0,0,0,.55);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        z-index: 2000;
+    }
+    .modal {
+        width: min(450px, 92%);
+        background: white;
+        border-radius: 12px;
+        padding: 25px;
+        box-shadow: 0 10px 40px rgba(0,0,0,.3);
+    }
+    .modal h2 { margin-top: 0; }
+    .modal-buttons {
+        display: flex;
+        justify-content: flex-end;
+        gap: 8px;
+        margin-top: 20px;
+    }
+
+    .highlight {
+        animation: blink .8s infinite alternate;
+    }
+    @keyframes blink {
+        from { outline: 2px solid #000; }
+        to   { outline: 5px solid #ffeb3b; }
+    }
+
+    .footer {
+        text-align: center;
+        color: #777;
+        font-size: 12px;
+        padding: 30px;
+    }
+
+    @media(max-width:700px) {
+        .seat {
+            width: 24px;
+            height: 24px;
+            font-size: 8px;
+        }
+        .auditorium {
+            padding: 8px;
+            overflow-x: auto;
+        }
+    }
+</style>
+</head>
+<body>
+<header>
+  <h1>Auditorium Seat Management</h1>
+</header>
+
+<div class="dashboard">
+  <div class="stat">Total<br><span id="totalCount">0</span></div>
+  <div class="stat available-stat">Available<br><span id="availableCount">0</span></div>
+  <div class="stat pending-stat">Online Pending<br><span id="pendingCount">0</span></div>
+  <div class="stat delivered-stat">Online Delivered<br><span id="deliveredCount">0</span></div>
+  <div class="stat counter-stat">Counter Sold<br><span id="counterCount">0</span></div>
+  <div class="stat total-money-stat">
+    Counter Sale Total<br>
+    Rs. <span id="counterTotal">0</span>
+  </div>
+</div>
+
+<div class="controls">
+  <input
+    id="searchBox"
+    class="search"
+    type="text"
+    placeholder="Search name or seat (e.g. G-12)..."
+    oninput="handleSearchInput()"
+  >
+  <button class="btn-green" onclick="sellSelectedCounter()">Sell Selected at Counter</button>
+  <button class="btn-dark" onclick="blockSelectedSeats()">Block Selected Seats</button>
+  <button class="btn-orange" onclick="importCSV()">Import Online CSV</button>
+  <button class="btn-dark" onclick="importVendorText()">Paste Vendor List</button>
+  <button class="btn-dark" onclick="exportBackup()">Backup</button>
+  <button class="btn-dark" onclick="restoreBackup()">Restore</button>
+  <button class="btn-dark" onclick="exportCSV()">Export CSV</button>
+  <button class="btn-red" onclick="resetAll()">Reset</button>
+</div>
+
+<div class="search-results" id="searchResults"></div>
+
+<!-- Seat status legend -->
+<div class="legend">
+  <div class="legend-item">
+    <div class="legend-box legend-available"></div>Available
+  </div>
+  <div class="legend-item">
+    <div class="legend-box legend-pending"></div>Online Pending
+  </div>
+  <div class="legend-item">
+    <div class="legend-box legend-delivered"></div>Online Delivered
+  </div>
+  <div class="legend-item">
+    <div class="legend-box legend-counter"></div>Counter Sold
+  </div>
+  <div class="legend-item">
+    <div class="legend-box legend-blocked"></div>Blocked (Reserve)
+  </div>
+</div>
+
+<!-- Ticket category / carpet legend -->
+<div class="ticket-legend">
+  <div class="ticket-legend-item">
+    <div class="ticket-legend-box zone-500"></div>Zone 500 (Rows A–B, ₹500)
+  </div>
+  <div class="ticket-legend-item">
+    <div class="ticket-legend-box zone-300"></div>Zone 300 (Rows C–F, ₹300)
+  </div>
+  <div class="ticket-legend-item">
+    <div class="ticket-legend-box zone-200"></div>Zone 200 (Rows G–K, ₹200)
+  </div>
+  <div class="ticket-legend-item">
+    <div class="ticket-legend-box zone-100"></div>Zone 100 (Rows L–P, ₹100)
+  </div>
+</div>
+
+<div class="auditorium">
+  <div class="screen">STAGE</div>
+
+  <!-- UPPER SECTION -->
+  <div class="section-title">UPPER SECTION</div>
+  <div class="compact-row">
+    <div class="row-labels" id="upper-left-labels">
+      <div data-row="A">A</div><div data-row="B">B</div><div data-row="C">C</div>
+      <div data-row="D">D</div><div data-row="E">E</div>
+      <div data-row="F">F</div><div data-row="G">G</div><div data-row="H">H</div>
+      <div data-row="I">I</div><div data-row="J">J</div>
+    </div>
+    <div class="seat-block" id="upper-left"></div>
+
+    <div class="block-gap"></div>
+
+    <div class="row-labels" id="upper-right-labels">
+      <div data-row="A">A</div><div data-row="B">B</div><div data-row="C">C</div>
+      <div data-row="D">D</div><div data-row="E">E</div>
+      <div data-row="F">F</div><div data-row="G">G</div><div data-row="H">H</div>
+      <div data-row="I">I</div><div data-row="J">J</div>
+    </div>
+    <div class="seat-block" id="upper-right"></div>
+  </div>
+
+  <div class="passage-label">PASSAGE</div>
+
+  <!-- LOWER SECTION -->
+  <div class="section-title">LOWER SECTION</div>
+  <div class="compact-row">
+    <div class="row-labels" id="lower-left-labels">
+      <div data-row="K">K</div><div data-row="L">L</div><div data-row="M">M</div>
+      <div data-row="N">N</div><div data-row="O">O</div><div data-row="P">P</div>
+    </div>
+    <div class="seat-block" id="lower-left"></div>
+
+    <div class="block-gap"></div>
+
+    <div class="row-labels" id="lower-right-labels">
+      <div data-row="K">K</div><div data-row="L">L</div><div data-row="M">M</div>
+      <div data-row="N">N</div><div data-row="O">O</div><div data-row="P">P</div>
+    </div>
+    <div class="seat-block" id="lower-right"></div>
+  </div>
+</div>
+
+<div class="footer">
+  Offline Auditorium Seat Management System
+</div>
+
+<div class="tooltip" id="tooltip"></div>
+
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal">
+    <h2 id="modalTitle">Seat Information</h2>
+    <div id="modalContent"></div>
+    <div class="modal-buttons" id="modalButtons"></div>
+  </div>
+</div>
+
+<script>
+let seats = {};
+let lockedRows = {};
+let counterSaleTotal = 0; // money to collect for selected counter seats
+
+const ROW_PRICES = {
+    "A": 500,
+    "B": 500,
+    "C": 300,
+    "D": 300,
+    "E": 300,
+    "F": 300,
+    "G": 200,
+    "H": 200,
+    "I": 200,
+    "J": 200,
+    "K": 200,
+    "L": 100,
+    "M": 100,
+    "N": 100,
+    "O": 100,
+    "P": 100
+};
+
+const ROWS_UPPER = ["A","B","C","D","E","F","G","H","I","J"];
+const ROWS_LOWER = ["K","L","M","N","O","P"];
+const COLS_PER_ROW = 18;
+const LEFT_COLS   = 9;
+const RIGHT_COLS  = 9;
+
+/* ========== CARPET / TICKET ZONE MAPPING (for labels) ========== */
+function getZoneClassForRow(row) {
+    if (row === "A" || row === "B") return "zone-500";
+    if (["C","D","E","F"].includes(row)) return "zone-300";
+    if (["G","H","I","J","K"].includes(row)) return "zone-200";
+    return "zone-100"; // L–P
+}
+
+function applyRowZoneClasses() {
+    const labelContainers = [
+        document.getElementById("upper-left-labels"),
+        document.getElementById("upper-right-labels"),
+        document.getElementById("lower-left-labels"),
+        document.getElementById("lower-right-labels")
+    ];
+    labelContainers.forEach(container => {
+        if (!container) return;
+        container.querySelectorAll("div[data-row]").forEach(div => {
+            const row = div.getAttribute("data-row");
+            const zoneClass = getZoneClassForRow(row);
+            div.classList.add(zoneClass);
+        });
+    });
+}
+
+/* ===========================
+   SEATING LAYOUT
+=========================== */
+
+function createSeat(id, container) {
+    if (!seats[id]) {
+        seats[id] = {
+            id: id,
+            status: "available",
+            name: "",
+            bookingSeats: [],
+            locked: false
+        };
+    }
+
+    const seat = document.createElement("div");
+    seat.className = "seat " + seats[id].status;
+    seat.dataset.id = id;
+    seat.textContent = id;
+
+    seat.addEventListener("mouseenter", e => showTooltip(e, id));
+    seat.addEventListener("mousemove", moveTooltip);
+    seat.addEventListener("mouseleave", hideTooltip);
+    seat.addEventListener("click", () => seatClicked(id, seat));
+
+    container.appendChild(seat);
+}
+
+function buildMap() {
+    document.getElementById("upper-left").innerHTML  = "";
+    document.getElementById("upper-right").innerHTML = "";
+    document.getElementById("lower-left").innerHTML  = "";
+    document.getElementById("lower-right").innerHTML = "";
+
+    ROWS_UPPER.forEach(rowLabel => {
+        for (let col = 1; col <= LEFT_COLS; col++) {
+            createSeat(rowLabel + "-" + col, document.getElementById("upper-left"));
+        }
+        for (let col = LEFT_COLS + 1; col <= COLS_PER_ROW; col++) {
+            createSeat(rowLabel + "-" + col, document.getElementById("upper-right"));
+        }
+    });
+
+    ROWS_LOWER.forEach(rowLabel => {
+        for (let col = 1; col <= LEFT_COLS; col++) {
+            createSeat(rowLabel + "-" + col, document.getElementById("lower-left"));
+        }
+        for (let col = LEFT_COLS + 1; col <= COLS_PER_ROW; col++) {
+            createSeat(rowLabel + "-" + col, document.getElementById("lower-right"));
+        }
+    });
+
+    applyRowZoneClasses(); // color the row labels by ticket category
+    refreshVisuals();
+}
+
+/* ===========================
+   CLICK HANDLING
+=========================== */
+function seatClicked(id, seatElem) {
+    const data = seats[id];
+    const row = id.split("-")[0];
+
+    // Online or counter seats open modal
+    if (data.status === "online-pending" || data.status === "online-delivered" || data.status === "counter-sold") {
+        openSeat(id);
+        return;
+    }
+
+    // Blocked or no price: open modal
+    if (data.status === "blocked" || !ROW_PRICES[row]) {
+        openSeat(id);
+        return;
+    }
+
+    // Available: toggle selection and update total
+    if (data.status === "available") {
+        seatElem.classList.toggle("selected");
+        recalcCounterSaleTotal();
+    }
+}
+
+/* ===========================
+   COUNTER SALE TOTAL
+=========================== */
+function recalcCounterSaleTotal() {
+    let total = 0;
+    const selected = Array.from(document.querySelectorAll(".seat.selected"));
+    selected.forEach(seatElem => {
+        const id = seatElem.dataset.id;
+        const row = id.split("-")[0];
+        const price = ROW_PRICES[row];
+        if (price) total += price;
+    });
+    counterSaleTotal = total;
+    document.getElementById("counterTotal").textContent = counterSaleTotal;
+}
+
+/* ===========================
+   SELL SELECTED COUNTER
+=========================== */
+function sellSelectedCounter() {
+    const selected = Array.from(document.querySelectorAll(".seat.selected"));
+    if (!selected.length) {
+        alert("No seats selected for counter sale.");
+        return;
+    }
+    if (!confirm(
+        "Sell " + selected.length + " selected seat(s) at the counter?\n" +
+        "Total to collect: Rs. " + counterSaleTotal
+    )) return;
+
+    selected.forEach(seatElem => {
+        const id = seatElem.dataset.id;
+        const data = seats[id];
+        const row = id.split("-")[0];
+
+        if (data.status === "available" && ROW_PRICES[row]) {
+            data.status = "counter-sold";
+            data.name = "";
+            data.bookingSeats = [];
+        }
+    });
+
+    document.querySelectorAll(".seat.selected").forEach(s => s.classList.remove("selected"));
+    counterSaleTotal = 0;
+    document.getElementById("counterTotal").textContent = counterSaleTotal;
+    refreshVisuals();
+}
+
+/* ===========================
+   BLOCK SELECTED SEATS
+=========================== */
+function blockSelectedSeats() {
+    const selected = Array.from(document.querySelectorAll(".seat.selected"));
+    if (!selected.length) {
+        alert("No seats selected to block.");
+        return;
+    }
+
+    const blockName = prompt("Enter name or reason for blocking selected seats (e.g. VIP Guest, Reserved):");
+    if (blockName === null) return;
+    const name = blockName.trim();
+    if (!name) return;
+
+    selected.forEach(seatElem => {
+        const id = seatElem.dataset.id;
+        const data = seats[id];
+        const row = id.split("-")[0];
+
+        if (data.status === "available" && ROW_PRICES[row]) {
+            data.status = "blocked";
+            data.name = name;
+            data.bookingSeats = [];
+        }
+    });
+
+    document.querySelectorAll(".seat.selected").forEach(s => s.classList.remove("selected"));
+    counterSaleTotal = 0;
+    document.getElementById("counterTotal").textContent = counterSaleTotal;
+    refreshVisuals();
+}
+
+/* ===========================
+   REFRESH / DASHBOARD
+=========================== */
+function refreshVisuals() {
+    document.querySelectorAll(".seat").forEach(el => {
+        const id = el.dataset.id;
+        const data = seats[id];
+        el.className = "seat " + data.status;
+    });
+    updateDashboard();
+    saveData();
+}
+
+function updateDashboard() {
+    let total = 0, available = 0, pending = 0, delivered = 0, counter = 0;
+
+    Object.values(seats).forEach(seat => {
+        total++;
+        if (seat.status === "available")        available++;
+        if (seat.status === "online-pending")   pending++;
+        if (seat.status === "online-delivered") delivered++;
+        if (seat.status === "counter-sold")     counter++;
+    });
+
+    document.getElementById("totalCount").textContent      = total;
+    document.getElementById("availableCount").textContent  = available;
+    document.getElementById("pendingCount").textContent    = pending;
+    document.getElementById("deliveredCount").textContent  = delivered;
+    document.getElementById("counterCount").textContent    = counter;
+}
+
+/* ===========================
+   TOOLTIP
+=========================== */
+function showTooltip(event, id) {
+    const data = seats[id];
+    const row = id.split("-")[0];
+    const price = ROW_PRICES[row];
+
+    let text = "<strong>Seat: " + id + "</strong><br>";
+    if (price) {
+        text += "Ticket Category: Rs. " + price + "<br>";
+    } else {
+        text += "Ticket Category: Not for sale<br>";
+    }
+
+    if (data.status === "available") {
+        text += "Status: Available";
+    } else if (data.status === "blocked") {
+        text += "Status: Blocked<br>";
+        if (data.name) {
+            text += "Blocked for: <strong>" + escapeHTML(data.name) + "</strong><br>";
+        }
+    } else if (data.status === "counter-sold") {
+        text += "Status: Counter Sold";
+    } else {
+        text += "Customer: <strong>" + escapeHTML(data.name) + "</strong><br>";
+        text += "Booking seats: " + escapeHTML(data.bookingSeats.join(", ")) + "<br>";
+        if (data.status === "online-pending") {
+            text += "Status: Online — Pending";
+        } else {
+            text += "Status: Online — Physical Ticket Delivered";
+        }
+    }
+
+    const tooltip = document.getElementById("tooltip");
+    tooltip.innerHTML = text;
+    tooltip.style.display = "block";
+    moveTooltip(event);
+}
+
+function moveTooltip(event) {
+    const tooltip = document.getElementById("tooltip");
+    tooltip.style.left = (event.clientX + 15) + "px";
+    tooltip.style.top  = (event.clientY + 15) + "px";
+}
+
+function hideTooltip() {
+    document.getElementById("tooltip").style.display = "none";
+}
+
+/* ===========================
+   MODAL / CLICK ACTIONS
+=========================== */
+function openSeat(id) {
+    const data = seats[id];
+
+    let title = "Seat " + id;
+    let content = "";
+    let buttons = "";
+
+    if (data.status === "blocked") {
+        content = `
+<p><strong>Status:</strong> Blocked</p>
+<p>Blocked for: <strong>${escapeHTML(data.name || "N/A")}</strong></p>`;
+        buttons = `
+<button class="btn-dark" onclick="closeModal()">Close</button>
+<button class="btn-red" onclick="unblockSeat('${id}')">Release Block</button>`;
+    } else if (data.status === "counter-sold") {
+        content = `
+<p><strong>Status:</strong> Counter Sold</p>
+<p>No customer name is stored.</p>`;
+        buttons = `
+<button class="btn-dark" onclick="closeModal()">Close</button>
+<button class="btn-red" onclick="releaseSeat('${id}')">Release Seat</button>`;
+    } else if (data.status === "available") {
+        content = `
+<p><strong>Status:</strong> Available</p>
+<p>This seat has not been sold.</p>`;
+        buttons = `
+<button class="btn-dark" onclick="closeModal()">Cancel</button>
+<button class="btn-green" onclick="sellCounter('${id}')">Sell at Counter</button>`;
+    } else {
+        const name = data.name;
+        const seatList = Object.values(seats)
+            .filter(s => s.name === name)
+            .map(s => s.id)
+            .sort();
+
+        content = `
+<p><strong>Customer:</strong> ${escapeHTML(name)}</p>
+<p><strong>Seats:</strong> ${escapeHTML(seatList.join(", "))}</p>
+<p><strong>Status:</strong>
+    ${data.status === "online-pending"
+        ? "Online — Pending Physical Ticket"
+        : "Online — Physical Ticket Delivered"}
+</p>`;
+
+        if (data.status === "online-pending") {
+            buttons = `
+<button class="btn-dark" onclick="closeModal()">Cancel</button>
+<button class="btn-red" onclick="deliverBooking('${id}')">✓ Deliver Physical Ticket</button>`;
+        } else {
+            buttons = `
+<button class="btn-dark" onclick="closeModal()">Close</button>
+<button class="btn-orange" onclick="returnToPending('${id}')">Return to Pending</button>`;
+        }
+    }
+
+    document.getElementById("modalTitle").textContent = title;
+    document.getElementById("modalContent").innerHTML = content;
+    document.getElementById("modalButtons").innerHTML = buttons;
+    document.getElementById("modalOverlay").style.display = "flex";
+}
+
+function closeModal() {
+    document.getElementById("modalOverlay").style.display = "none";
+}
+
+function sellCounter(id) {
+    const row = id.split("-")[0];
+    const data = seats[id];
+
+    if (data.status === "blocked" || !ROW_PRICES[row]) {
+        alert("Seat " + id + " is blocked or not for sale.");
+        return;
+    }
+    if (!confirm("Sell seat " + id + " at the counter?")) return;
+    data.status = "counter-sold";
+    data.name = "";
+    data.bookingSeats = [];
+    saveData();
+    closeModal();
+    refreshVisuals();
+}
+
+function releaseSeat(id) {
+    if (!confirm("Release seat " + id + " and make it Available again?")) return;
+    seats[id].status = "available";
+    seats[id].name = "";
+    seats[id].bookingSeats = [];
+    saveData();
+    closeModal();
+    refreshVisuals();
+}
+
+function unblockSeat(id) {
+    const data = seats[id];
+    if (!data || data.status !== "blocked") return;
+
+    if (!confirm("Release block on seat " + id + " and make it Available again?")) return;
+
+    data.status = "available";
+    data.name = "";
+    data.bookingSeats = [];
+
+    saveData();
+    closeModal();
+    refreshVisuals();
+}
+
+// Deliver all seats for this customer
+function deliverBooking(id) {
+    const bookingSeat = seats[id];
+    if (!bookingSeat || !bookingSeat.name) return;
+
+    const name = bookingSeat.name;
+
+    const seatList = Object.values(seats)
+        .filter(s => s.name === name)
+        .map(s => s.id)
+        .sort();
+
+    if (!seatList.length) return;
+
+    if (!confirm(
+        "Confirm physical ticket delivery?\n\n" +
+        name + "\n" +
+        seatList.join(", ")
+    )) return;
+
+    seatList.forEach(seatID => {
+        if (seats[seatID]) {
+            seats[seatID].status = "online-delivered";
+            seats[seatID].bookingSeats = seatList;
+        }
+    });
+
+    saveData();
+    closeModal();
+    refreshVisuals();
+}
+
+// Return all seats for this customer to pending
+function returnToPending(id) {
+    const bookingSeat = seats[id];
+    if (!bookingSeat || !bookingSeat.name) return;
+
+    const name = bookingSeat.name;
+
+    const seatList = Object.values(seats)
+        .filter(s => s.name === name)
+        .map(s => s.id)
+        .sort();
+
+    if (!seatList.length) return;
+
+    if (!confirm("Return this booking to Pending?\n\n" +
+        name + "\n" + seatList.join(", ")
+    )) return;
+
+    seatList.forEach(seatID => {
+        if (seats[seatID]) {
+            seats[seatID].status = "online-pending";
+            seats[seatID].bookingSeats = seatList;
+        }
+    });
+
+    saveData();
+    closeModal();
+    refreshVisuals();
+}
+
+/* ===========================
+   SEARCH (name or seat)
+=========================== */
+function handleSearchInput() {
+    const value = document.getElementById("searchBox").value.trim();
+    document.querySelectorAll(".seat").forEach(el => el.classList.remove("highlight"));
+    const lower = value.toLowerCase();
+
+    if (!value) {
+        document.getElementById("searchResults").style.display = "none";
+        return;
+    }
+
+    if (/^[A-P]-\d{1,2}$/i.test(value)) {
+        const id = value.toUpperCase();
+        const seatElem = document.querySelector('[data-id="' + id + '"]');
+        if (seatElem) {
+            seatElem.classList.add("highlight");
+            seatElem.scrollIntoView({ behavior: "smooth", block: "center" });
+        }
+        document.getElementById("searchResults").style.display = "none";
+        return;
+    }
+
+    searchCustomerByName(lower);
+}
+
+function searchCustomerByName(lower) {
+    const resultBox = document.getElementById("searchResults");
+
+    const bookings = {};
+
+    Object.values(seats).forEach(seat => {
+        if (!seat.name) return;
+        if (!seat.name.toLowerCase().includes(lower)) return;
+
+        if (!bookings[seat.name]) {
+            bookings[seat.name] = {
+                name: seat.name,
+                seats: new Set(),
+                hasPending: false,
+                hasDelivered: false
+            };
+        }
+
+        bookings[seat.name].seats.add(seat.id);
+        if (seat.status === "online-pending")  bookings[seat.name].hasPending = true;
+        if (seat.status === "online-delivered") bookings[seat.name].hasDelivered = true;
+    });
+
+    resultBox.innerHTML = "";
+
+    const names = Object.keys(bookings);
+    if (!names.length) {
+        resultBox.innerHTML = "<div class='search-result'>No customer found.</div>";
+        resultBox.style.display = "block";
+        return;
+    }
+
+    names.forEach(name => {
+        const booking = bookings[name];
+        const seatList = Array.from(booking.seats).sort();
+
+        let statusText = "";
+        if (booking.hasPending && booking.hasDelivered) {
+            statusText = "Online — Mixed (Pending + Delivered)";
+        } else if (booking.hasPending) {
+            statusText = "Online — Pending";
+        } else if (booking.hasDelivered) {
+            statusText = "Online — Delivered";
+        } else {
+            statusText = "Unknown";
+        }
+
+        const div = document.createElement("div");
+        div.className = "search-result";
+        div.innerHTML = `
+<strong>${escapeHTML(booking.name)}</strong><br>
+Seats: ${escapeHTML(seatList.join(", "))}<br>
+Status: ${statusText}
+        `;
+
+        div.onclick = () => {
+            seatList.forEach(id => {
+                const seatElement = document.querySelector('[data-id="' + id + '"]');
+                if (seatElement) {
+                    seatElement.classList.add("highlight");
+                    seatElement.scrollIntoView({ behavior: "smooth", block: "center" });
+                }
+            });
+        };
+
+        resultBox.appendChild(div);
+    });
+
+    resultBox.style.display = "block";
+}
+
+/* ===========================
+   CSV IMPORT (Name,Seat)
+=========================== */
+function addOnlineBooking(name, bookingSeats) {
+    bookingSeats.forEach(id => {
+        if (!seats[id]) {
+            console.warn("Seat from CSV not in map:", id);
+            return;
+        }
+        seats[id].status = "online-pending";
+        seats[id].name = name;
+        seats[id].bookingSeats = bookingSeats;
+    });
+}
+
+function importCSV() {
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = ".csv";
+
+    input.onchange = event => {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = e => {
+            const text = e.target.result;
+            console.log("CSV text:\n", text);
+
+            const lines = text.split(/\r?\n/).filter(line => line.trim().length > 0);
+            let importedCount = 0;
+
+            let startIndex = 0;
+            const firstLineLower = lines[0].toLowerCase();
+            if (firstLineLower.includes("name") && firstLineLower.includes("seat")) {
+                startIndex = 1;
+            }
+
+            const seatPattern = /^[A-P]-\d{1,2}$/i;
+
+            for (let i = startIndex; i < lines.length; i++) {
+                const rawLine = lines[i];
+                const line = rawLine.trim();
+                if (!line) continue;
+
+                const firstCommaIndex = line.indexOf(",");
+                if (firstCommaIndex === -1) continue;
+
+                const name = line.slice(0, firstCommaIndex).trim();
+                let seatsCell = line.slice(firstCommaIndex + 1).trim();
+                if (!name || !seatsCell) continue;
+
+                seatsCell = seatsCell.replace(/\|/g, ",");
+                seatsCell = seatsCell.replace(/\s*,\s*/g, ",");
+                seatsCell = seatsCell.replace(/\s+/g, " ");
+
+                const rawSeatList = seatsCell
+                    .split(",")
+                    .map(s => s.trim())
+                    .filter(Boolean);
+
+                const seatList = rawSeatList
+                    .map(s => s.replace(/\u00A0/g, " ").trim())
+                    .filter(s => seatPattern.test(s))
+                    .map(s => s.toUpperCase());
+
+                if (!seatList.length) continue;
+
+                console.log("Parsed CSV booking:", { name, seatList });
+                addOnlineBooking(name, seatList);
+                importedCount++;
+            }
+
+            refreshVisuals();
+            alert("CSV import completed: " + importedCount + " booking(s).");
+        };
+
+        reader.readAsText(file);
+    };
+
+    input.click();
+}
+
+/* ===========================
+   PASTE VENDOR LIST (Name,Seat)
+=========================== */
+function importVendorText() {
+    const text = prompt(
+        "Paste vendor Name,Seat list here (one entry per line):\n\n" +
+        "Example:\nName,Seat\nAniket Deb,H-8\nAnubhav Ghosh,G-12\n..."
+    );
+    if (text === null) return; // cancelled
+
+    const lines = text.split(/\r?\n/).filter(line => line.trim().length > 0);
+    if (!lines.length) {
+        alert("No data provided.");
+        return;
+    }
+
+    let startIndex = 0;
+    const firstLineLower = lines[0].toLowerCase();
+    if (firstLineLower.includes("name") && firstLineLower.includes("seat")) {
+        startIndex = 1;
+    }
+
+    const seatPattern = /^[A-P]-\d{1,2}$/i;
+    let importedCount = 0;
+
+    for (let i = startIndex; i < lines.length; i++) {
+        const rawLine = lines[i];
+        const line = rawLine.trim();
+        if (!line) continue;
+
+        const firstCommaIndex = line.indexOf(",");
+        if (firstCommaIndex === -1) continue;
+
+        const name = line.slice(0, firstCommaIndex).trim();
+        let seatsCell = line.slice(firstCommaIndex + 1).trim();
+        if (!name || !seatsCell) continue;
+
+        seatsCell = seatsCell.replace(/\|/g, ",");
+        seatsCell = seatsCell.replace(/\s*,\s*/g, ",");
+        seatsCell = seatsCell.replace(/\s+/g, " ");
+
+        const rawSeatList = seatsCell
+            .split(",")
+            .map(s => s.trim())
+            .filter(Boolean);
+
+        const seatList = rawSeatList
+            .map(s => s.replace(/\u00A0/g, " ").trim())
+            .filter(s => seatPattern.test(s))
+            .map(s => s.toUpperCase());
+
+        if (!seatList.length) continue;
+
+        console.log("Parsed vendor booking:", { name, seatList });
+        addOnlineBooking(name, seatList);
+        importedCount++;
+    }
+
+    refreshVisuals();
+    alert("Vendor list import completed: " + importedCount + " entry/entries.");
+}
+
+/* ===========================
+   LOCAL STORAGE / BACKUP / CSV EXPORT / RESET
+=========================== */
+function saveData() {
+    localStorage.setItem("auditoriumSeatData", JSON.stringify({ seats, lockedRows }));
+}
+
+function loadData() {
+    const saved = localStorage.getItem("auditoriumSeatData");
+    if (saved) {
+        try {
+            const parsed = JSON.parse(saved);
+            seats = parsed.seats || {};
+            lockedRows = parsed.lockedRows || {};
+        } catch {
+            seats = {};
+            lockedRows = {};
+        }
+    }
+}
+
+function exportBackup() {
+    const blob = new Blob([JSON.stringify({ seats, lockedRows }, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "auditorium-seat-backup.json";
+    a.click();
+    URL.revokeObjectURL(url);
+}
+
+function restoreBackup() {
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = ".json";
+
+    input.onchange = event => {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = e => {
+            try {
+                const restored = JSON.parse(e.target.result);
+                if (!confirm("Restore this backup?\n\nCurrent data will be replaced.")) return;
+
+                seats = restored.seats || {};
+                lockedRows = restored.lockedRows || {};
+                saveData();
+                buildMap();
+                alert("Backup restored successfully.");
+            } catch {
+                alert("This backup file is invalid.");
+            }
+        };
+        reader.readAsText(file);
+    };
+
+    input.click();
+}
+
+function exportCSV() {
+    let csv = "Seat Number,Customer Name,Booking Type,Status,Booking Seats\n";
+
+    Object.values(seats).forEach(seat => {
+        let bookingType = "";
+        if (seat.status === "online-pending" || seat.status === "online-delivered") {
+            bookingType = "Online";
+        } else if (seat.status === "counter-sold") {
+            bookingType = "Counter";
+        } else if (seat.status === "blocked") {
+            bookingType = "Blocked";
+        }
+
+        csv +=
+            `"${seat.id}",` +
+            `"${seat.name || ""}",` +
+            `"${bookingType}",` +
+            `"${seat.status}",` +
+            `"${(seat.bookingSeats || []).join(" ")}"` +
+            "\n";
+    });
+
+    const blob = new Blob([csv], { type: "text/cv;charset=utf-8;" });
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement("a");
+    a.href = url;
+    a.download = "auditorium-seating-report.csv";
+    a.click();
+    URL.revokeObjectURL(url);
+}
+
+function resetAll() {
+    if (!confirm(
+        "RESET ALL SEAT DATA?\n\nAll online, blocked and counter-sale information will be removed."
+    )) return;
+
+    localStorage.removeItem("auditoriumSeatData");
+    location.reload();
+}
+
+/* ===========================
+   UTIL
+=========================== */
+function escapeHTML(value) {
+    return String(value)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+}
+
+/* ===========================
+   START
+=========================== */
+loadData();
+buildMap();
+</script>
+</body>
+</html>
