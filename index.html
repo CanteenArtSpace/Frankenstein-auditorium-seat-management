@@ -8,42 +8,63 @@
     * { box-sizing: border-box; }
     body {
         margin: 0;
-        font-family: Arial, Helvetica, sans-serif;
-        background: #f4f5f7;
-        color: #222;
+        font-family: "Georgia", "Times New Roman", serif;
+        background: #f0e3c3; /* aged paper */
+        color: #2a1b12;
     }
+
+    /* HEADER: poster image + dark band */
     header {
-        background: #222;
+        background: #2b1c13;
         color: white;
-        padding: 18px 25px;
-        text-align: center;
+        padding: 0;
+        text-align: left;
+    }
+    header img {
+        width: 100%;
+        max-height: 260px;
+        object-fit: cover;
+        display: block;
     }
     header h1 {
         margin: 0;
-        font-size: 24px;
+        padding: 10px 24px;
+        font-size: 22px;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        background: #2b1c13;
+        border-top: 1px solid rgba(255,255,255,0.1);
     }
+
+    /* DASHBOARD */
     .dashboard {
         display: flex;
         justify-content: center;
         gap: 12px;
         flex-wrap: wrap;
         padding: 15px;
-        background: white;
-        border-bottom: 1px solid #ddd;
+        background: #f5e6c9;
+        border-bottom: 1px solid #b8976f;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.15);
     }
     .stat {
         padding: 10px 18px;
-        border-radius: 8px;
+        border-radius: 6px;
         font-weight: bold;
         min-width: 130px;
         text-align: center;
+        font-size: 13px;
+        color: #2a1b12;
+        border: 1px solid rgba(60,40,28,0.35);
+        background: #f8ecd3;
     }
-    .available-stat { background: #ffffff; border: 1px solid #ccc; }
-    .pending-stat   { background: #ece75f; }  /* Online Pending */
-    .delivered-stat { background: #5ced73; }  /* Online Delivered (and blocked delivered) */
-    .counter-stat   { background: #41fdfe; }  /* Counter Sold */
-    .total-money-stat { background: #ffe0b2; } /* Counter total */
+    .available-stat { background: #fdf6dd; }
+    .pending-stat   { background: #f4e27a; }   /* Online Pending */
+    .delivered-stat { background: #b6e36b; }   /* Delivered (Online + Blocked) */
+    .counter-stat   { background: #7bd4df; }   /* Counter Sold */
+    .total-money-stat { background: #f9d7a3; } /* Counter total */
 
+    /* CONTROLS & BUTTONS */
     .controls {
         display: flex;
         justify-content: center;
@@ -54,50 +75,58 @@
     }
     button {
         border: none;
-        padding: 11px 17px;
-        border-radius: 7px;
+        padding: 10px 16px;
+        border-radius: 6px;
         cursor: pointer;
-        font-size: 14px;
+        font-size: 13px;
         font-weight: bold;
+        font-family: "Georgia", "Times New Roman", serif;
+        letter-spacing: 0.03em;
+        text-transform: uppercase;
+        box-shadow: 0 2px 3px rgba(0,0,0,0.25);
     }
-    button:hover { opacity: 0.85; }
-    .btn-dark   { background: #333;   color: white; }
-    .btn-green  { background: #16843d; color: white; }
-    .btn-orange { background: #e58a00; color: white; }
-    .btn-red    { background: #c62828; color: white; }
+    button:hover { opacity: 0.92; transform: translateY(-1px); }
+    .btn-dark   { background: #3a2620; color: #fbeed6; }
+    .btn-green  { background: #537c39; color: #fdf6dd; }
+    .btn-orange { background: #b85c1f; color: #fdf6dd; }
+    .btn-red    { background: #8a1f1f; color: #fdf6dd; }
 
     .search {
-        padding: 11px;
+        padding: 10px;
         width: 260px;
-        border: 1px solid #bbb;
-        border-radius: 7px;
-        font-size: 14px;
+        border: 1px solid #a3764c;
+        border-radius: 6px;
+        font-size: 13px;
+        background: #fff9e9;
+        color: #3a2620;
     }
 
+    /* LEGENDS */
     .legend {
         display: flex;
         justify-content: center;
         gap: 18px;
         flex-wrap: wrap;
         padding: 8px 15px 6px;
+        color: #3a2620;
+        font-size: 13px;
     }
     .legend-item {
         display: flex;
         align-items: center;
         gap: 6px;
-        font-size: 13px;
     }
     .legend-box {
         width: 18px;
         height: 18px;
         border-radius: 4px;
-        border: 1px solid #999;
+        border: 1px solid #5f4129;
     }
-    .legend-available { background: #ffffff; }
-    .legend-pending   { background: #ece75f; }
-    .legend-delivered { background: #5ced73; }
-    .legend-counter   { background: #41fdfe; }
-    .legend-blocked   { background: #9e9e9e; }
+    .legend-available { background: #fdf6dd; }
+    .legend-pending   { background: #f4e27a; }
+    .legend-delivered { background: #b6e36b; }
+    .legend-counter   { background: #7bd4df; }
+    .legend-blocked   { background: #b98585; }
 
     /* Ticket category legend (carpet zones) */
     .ticket-legend {
@@ -107,6 +136,7 @@
         flex-wrap: wrap;
         padding: 0 15px 18px;
         font-size: 13px;
+        color: #3a2620;
     }
     .ticket-legend-item {
         display: flex;
@@ -117,13 +147,20 @@
         width: 22px;
         height: 12px;
         border-radius: 4px;
-        border: 1px solid #999;
+        border: 1px solid #5f4129;
     }
 
+    /* Ticket zone colors – warmer palette */
+    .zone-500 { background: #f3c36a; } /* front premium */
+    .zone-300 { background: #e6d07d; }
+    .zone-200 { background: #d9c581; }
+    .zone-100 { background: #ccb38a; }
+
+    /* AUDITORIUM LAYOUT */
     .auditorium {
         width: 100%;
         max-width: 900px;
-        margin: auto;
+        margin: 0 auto;
         padding: 20px;
     }
     .screen {
@@ -131,17 +168,23 @@
         margin: 0 auto 20px;
         padding: 10px;
         text-align: center;
-        background: #ddd;
+        background: #d4c094;
         border-radius: 50% / 20%;
         font-weight: bold;
-        letter-spacing: 3px;
+        letter-spacing: 0.15em;
+        color: #3a2620;
+        text-transform: uppercase;
+        box-shadow: inset 0 1px 0 rgba(255,255,255,0.7);
     }
 
     .section-title {
         text-align: center;
         font-weight: bold;
         margin: 10px 0;
-        color: #555;
+        color: #3a2620;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        font-size: 13px;
     }
 
     .compact-row {
@@ -160,7 +203,7 @@
         margin-right: 4px;
         font-size: 14px;
         line-height: 30px;
-        color: #333;
+        color: #3a2620;
         font-family: "Courier New", monospace;
     }
     .row-labels div {
@@ -170,13 +213,8 @@
         justify-content: center;
         padding: 0 6px;
         border-radius: 4px;
+        border: 1px solid rgba(58,38,32,0.25);
     }
-
-    /* Carpet / ticket zone colors for rows */
-    .zone-500 { background: #ffe9b3; } /* gold-ish */
-    .zone-300 { background: #d6f7ff; } /* light teal/blue */
-    .zone-200 { background: #e3edff; } /* pale blue */
-    .zone-100 { background: #f3e5ff; } /* pale violet */
 
     .seat-block {
         display: grid;
@@ -187,26 +225,26 @@
 
     .block-gap { width: 60px; }
 
+    /* SEATS */
     .seat {
         width: 30px;
         height: 30px;
-        border-radius: 6px 6px 4px 4px; /* subtle chair-like shape */
-        border: 1px solid rgba(0,0,0,0.35);
+        border-radius: 6px 6px 4px 4px;
+        border: 1px solid rgba(40,26,17,0.5);
         cursor: pointer;
         position: relative;
-        transition: transform 0.1s, box-shadow 0.1s;
-        background: #ffffff;
+        transition: transform 0.08s, box-shadow 0.08s, background 0.08s;
+        background: #fdf6dd;
         display: flex;
         align-items: center;
         justify-content: center;
         font-size: 9px;
         font-family: "Courier New", monospace;
-        color: #222;
+        color: #2a1b12;
         user-select: none;
-        box-shadow: 0 1px 0 rgba(0,0,0,0.25);
+        box-shadow: 0 1px 0 rgba(0,0,0,0.2);
     }
     .seat::after {
-        /* little base under the chair */
         content: "";
         position: absolute;
         bottom: -3px;
@@ -214,72 +252,79 @@
         right: 5px;
         height: 3px;
         border-radius: 0 0 3px 3px;
-        background: rgba(0,0,0,0.15);
+        background: rgba(0,0,0,0.25);
     }
     .seat:hover {
-        transform: translateY(-2px) scale(1.06);
+        transform: translateY(-2px) scale(1.04);
         z-index: 5;
         box-shadow: 0 3px 6px rgba(0,0,0,0.35);
     }
 
-    .available        { background: #ffffff; color: #222; }
-    .online-pending   { background: #ece75f; color: #222; }
-    .online-delivered { background: #5ced73; color: #222; }
-    .counter-sold     { background: #41fdfe; color: #222; }
-    .blocked          { background: #9e9e9e; color: #fff; }
-    .blocked-delivered { background: #5ced73; color: #222; } /* blocked seats with physical tickets delivered */
+    .available        { background: #fdf6dd; color: #2a1b12; }
+    .online-pending   { background: #f4e27a; color: #2a1b12; }
+    .online-delivered { background: #b6e36b; color: #2a1b12; }
+    .counter-sold     { background: #7bd4df; color: #2a1b12; }
+    .blocked          { background: #b98585; color: #2a1b12; }
+    .blocked-delivered { background: #b6e36b; color: #2a1b12; }
 
     .seat.selected {
-        outline: 2px solid #000;
+        outline: 2px solid #2b1c13;
         outline-offset: 1px;
     }
 
     .passage-label {
         text-align: center;
         margin: 10px 0 20px;
-        font-size: 12px;
-        letter-spacing: 1px;
-        color: #666;
+        font-size: 11px;
+        letter-spacing: 0.15em;
+        color: #5f4129;
+        text-transform: uppercase;
     }
 
+    /* TOOLTIP */
     .tooltip {
         position: fixed;
         display: none;
-        background: #222;
-        color: white;
+        background: #2b1c13;
+        color: #fdf6dd;
         padding: 10px 12px;
         border-radius: 7px;
-        font-size: 13px;
+        font-size: 12px;
         line-height: 1.5;
         max-width: 260px;
         z-index: 1000;
         pointer-events: none;
-        box-shadow: 0 4px 15px rgba(0,0,0,.3);
+        box-shadow: 0 4px 15px rgba(0,0,0,.6);
+        border: 1px solid #d3b48a;
     }
 
     .search-results {
         max-width: 600px;
         margin: 0 auto 15px;
-        background: white;
+        background: #f8ecd3;
         border-radius: 8px;
         padding: 10px;
         display: none;
-        box-shadow: 0 2px 10px rgba(0,0,0,.1);
+        box-shadow: 0 2px 10px rgba(0,0,0,.2);
+        border: 1px solid #b8976f;
+        color: #3a2620;
     }
     .search-result {
         padding: 10px;
-        border-bottom: 1px solid #eee;
+        border-bottom: 1px solid #dec5a3;
         cursor: pointer;
+        font-size: 13px;
     }
     .search-result:last-child {
         border-bottom: none;
     }
-    .search-result:hover { background: #f5f5f5; }
+    .search-result:hover { background: #f0e1bf; }
 
+    /* MODAL */
     .modal-overlay {
         position: fixed;
         inset: 0;
-        background: rgba(0,0,0,.55);
+        background: rgba(0,0,0,.7);
         display: none;
         align-items: center;
         justify-content: center;
@@ -287,12 +332,14 @@
     }
     .modal {
         width: min(450px, 92%);
-        background: white;
+        background: #f8ecd3;
         border-radius: 12px;
         padding: 25px;
-        box-shadow: 0 10px 40px rgba(0,0,0,.3);
+        box-shadow: 0 10px 40px rgba(0,0,0,.6);
+        border: 1px solid #b8976f;
+        color: #2a1b12;
     }
-    .modal h2 { margin-top: 0; }
+    .modal h2 { margin-top: 0; font-size: 18px; }
     .modal-buttons {
         display: flex;
         justify-content: flex-end;
@@ -304,15 +351,17 @@
         animation: blink .8s infinite alternate;
     }
     @keyframes blink {
-        from { outline: 2px solid #000; }
-        to   { outline: 5px solid #ffeb3b; }
+        from { outline: 2px solid #2b1c13; }
+        to   { outline: 5px solid #e8cf7d; }
     }
 
     .footer {
         text-align: center;
-        color: #777;
-        font-size: 12px;
-        padding: 30px;
+        color: #5f4129;
+        font-size: 11px;
+        padding: 25px;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
     }
 
     @media(max-width:700px) {
@@ -325,16 +374,20 @@
             padding: 8px;
             overflow-x: auto;
         }
+        header h1 {
+            font-size: 18px;
+        }
     }
 </style>
 </head>
 <body>
 <header>
+  <!-- change src to your actual image name -->
   <img
     src="frankenstein-header.jpg"
     alt="Frankenstein production poster – Tapan Theatre"
-    style="width: 100%; max-height: 200px; object-fit: cover; display: block;"
   >
+  <h1>Frankenstein Auditorium Seat Management</h1>
 </header>
 
 <div class="dashboard">
@@ -409,7 +462,7 @@
   <div class="screen">STAGE</div>
 
   <!-- UPPER SECTION -->
-  <div class="section-title">UPPER SECTION</div>
+  <div class="section-title">Upper Section</div>
   <div class="compact-row">
     <div class="row-labels" id="upper-left-labels">
       <div data-row="A">A</div><div data-row="B">B</div><div data-row="C">C</div>
@@ -430,10 +483,10 @@
     <div class="seat-block" id="upper-right"></div>
   </div>
 
-  <div class="passage-label">PASSAGE</div>
+  <div class="passage-label">Passage</div>
 
   <!-- LOWER SECTION -->
-  <div class="section-title">LOWER SECTION</div>
+  <div class="section-title">Lower Section</div>
   <div class="compact-row">
     <div class="row-labels" id="lower-left-labels">
       <div data-row="K">K</div><div data-row="L">L</div><div data-row="M">M</div>
@@ -572,7 +625,7 @@ function buildMap() {
         }
     });
 
-    applyRowZoneClasses(); // color the row labels by ticket category
+    applyRowZoneClasses();
     refreshVisuals();
 }
 
@@ -675,7 +728,7 @@ function blockSelectedSeats() {
     const blockName = prompt("Enter name or reason for blocking selected seats (e.g. VIP Guest, Reserved):");
     if (blockName === null) return;
     const name = blockName.trim();
-    if (!name) return;
+       if (!name) return;
 
     selected.forEach(seatElem => {
         const id = seatElem.dataset.id;
@@ -1226,7 +1279,7 @@ function importVendorText() {
         "Paste vendor Name,Seat list here (one entry per line):\n\n" +
         "Example:\nName,Seat\nAniket Deb,H-8\nAnubhav Ghosh,G-12\n..."
     );
-    if (text === null) return; // cancelled
+    if (text === null) return;
 
     const lines = text.split(/\r?\n/).filter(line => line.trim().length > 0);
     if (!lines.length) {
@@ -1249,7 +1302,7 @@ function importVendorText() {
         if (!line) continue;
 
         const firstCommaIndex = line.indexOf(",");
-        if (firstCommaIndex === -1) continue;
+               if (firstCommaIndex === -1) continue;
 
         const name = line.slice(0, firstCommaIndex).trim();
         let seatsCell = line.slice(firstCommaIndex + 1).trim();
