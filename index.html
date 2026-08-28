@@ -209,14 +209,14 @@
 
     .seat-block {
         display: grid;
-        grid-template-columns: repeat(9, 40px); /* wider for image seats */
+        grid-template-columns: repeat(9, 40px);
         grid-auto-rows: 40px;
         gap: 4px;
     }
 
     .block-gap { width: 60px; }
 
-    /* SEATS – now image based */
+    /* SEATS with images */
     .seat {
         width: 40px;
         height: 40px;
@@ -238,10 +238,7 @@
         box-shadow: 0 1px 0 rgba(0,0,0,0.2);
         text-shadow: 0 0 3px rgba(255,255,255,0.9);
     }
-    /* no extra base under the chair, the image already has it */
-    .seat::after {
-        content: none;
-    }
+    .seat::after { content: none; }
     .seat:hover {
         transform: translateY(-2px) scale(1.04);
         z-index: 5;
@@ -397,15 +394,11 @@
 </head>
 <body>
 <header>
-  <!-- change src to your actual image name if needed -->
   <img
     src="frankenstein-header.jpg"
     alt="Frankenstein production poster – Tapan Theatre"
   >
 </header>
-
-<!-- (REST OF YOUR HTML AND SCRIPT IS IDENTICAL) -->
-<!-- everything below here is unchanged from the version you sent -->
 
 <div class="dashboard">
   <div class="stat">Total<br><span id="totalCount">0</span></div>
@@ -419,9 +412,239 @@
   </div>
 </div>
 
-<!-- … everything else in your HTML and <script> block stays exactly the same … -->
+<div class="controls">
+  <input
+    id="searchBox"
+    class="search"
+    type="text"
+    placeholder="Search name or seat (e.g. G-12)..."
+    oninput="handleSearchInput()"
+  >
+  <button class="btn-green" onclick="sellSelectedCounter()">Sell Selected at Counter</button>
+  <button class="btn-dark" onclick="blockSelectedSeats()">Block Selected Seats</button>
+  <button class="btn-orange" onclick="importCSV()">Import Online CSV</button>
+  <button class="btn-dark" onclick="importVendorText()">Paste Vendor List</button>
+  <button class="btn-dark" onclick="exportBackup()">Backup</button>
+  <button class="btn-dark" onclick="restoreBackup()">Restore</button>
+  <button class="btn-dark" onclick="exportCSV()">Export CSV</button>
+  <button class="btn-dark" onclick="clearSelectedSeats()">Clear Selected</button>
+  <button class="btn-red" onclick="resetAll()">Reset</button>
+</div>
 
-<!-- paste the rest of your original body (auditorium layout, scripts, etc.) here -->
+<div class="search-results" id="searchResults"></div>
 
+<!-- Seat status legend -->
+<div class="legend">
+  <div class="legend-item">
+    <div class="legend-box legend-available"></div>Available
+  </div>
+  <div class="legend-item">
+    <div class="legend-box legend-pending"></div>Online Pending
+  </div>
+  <div class="legend-item">
+    <div class="legend-box legend-delivered"></div>Delivered (Online + Blocked)
+  </div>
+  <div class="legend-item">
+    <div class="legend-box legend-counter"></div>Counter Sold
+  </div>
+  <div class="legend-item">
+    <div class="legend-box legend-blocked"></div>Blocked (Reserve)
+  </div>
+</div>
+
+<!-- Ticket category / carpet legend -->
+<div class="ticket-legend">
+  <div class="ticket-legend-item">
+    <div class="ticket-legend-box zone-500"></div>Zone 500 (Rows A–B, ₹500)
+  </div>
+  <div class="ticket-legend-item">
+    <div class="ticket-legend-box zone-300"></div>Zone 300 (Rows C–F, ₹300)
+  </div>
+  <div class="ticket-legend-item">
+    <div class="ticket-legend-box zone-200"></div>Zone 200 (Rows G–K, ₹200)
+  </div>
+  <div class="ticket-legend-item">
+    <div class="ticket-legend-box zone-100"></div>Zone 100 (Rows L–P, ₹100)
+  </div>
+</div>
+
+<div class="auditorium">
+  <div class="screen">STAGE</div>
+
+  <!-- UPPER SECTION -->
+  <div class="section-title">Upper Section</div>
+  <div class="compact-row">
+    <div class="row-labels" id="upper-left-labels">
+      <div data-row="A">A</div><div data-row="B">B</div><div data-row="C">C</div>
+      <div data-row="D">D</div><div data-row="E">E</div>
+      <div data-row="F">F</div><div data-row="G">G</div><div data-row="H">H</div>
+      <div data-row="I">I</div><div data-row="J">J</div>
+    </div>
+    <div class="seat-block" id="upper-left"></div>
+
+    <div class="block-gap"></div>
+
+    <div class="row-labels" id="upper-right-labels">
+      <div data-row="A">A</div><div data-row="B">B</div><div data-row="C">C</div>
+      <div data-row="D">D</div><div data-row="E">E</div>
+      <div data-row="F">F</div><div data-row="G">G</div><div data-row="H">H</div>
+      <div data-row="I">I</div><div data-row="J">J</div>
+    </div>
+    <div class="seat-block" id="upper-right"></div>
+  </div>
+
+  <div class="passage-label">Passage</div>
+
+  <!-- LOWER SECTION -->
+  <div class="section-title">Lower Section</div>
+  <div class="compact-row">
+    <div class="row-labels" id="lower-left-labels">
+      <div data-row="K">K</div><div data-row="L">L</div><div data-row="M">M</div>
+      <div data-row="N">N</div><div data-row="O">O</div><div data-row="P">P</div>
+    </div>
+    <div class="seat-block" id="lower-left"></div>
+
+    <div class="block-gap"></div>
+
+    <div class="row-labels" id="lower-right-labels">
+      <div data-row="K">K</div><div data-row="L">L</div><div data-row="M">M</div>
+      <div data-row="N">N</div><div data-row="O">O</div><div data-row="P">P</div>
+    </div>
+    <div class="seat-block" id="lower-right"></div>
+  </div>
+</div>
+
+<div class="footer">
+  Offline Auditorium Seat Management System
+</div>
+
+<div class="tooltip" id="tooltip"></div>
+
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal">
+    <h2 id="modalTitle">Seat Information</h2>
+    <div id="modalContent"></div>
+    <div class="modal-buttons" id="modalButtons"></div>
+  </div>
+</div>
+
+<script>
+/* === your original JS unchanged === */
+let seats = {};
+let lockedRows = {};
+let counterSaleTotal = 0; // money to collect for selected counter seats
+
+const ROW_PRICES = {
+    "A": 500,
+    "B": 500,
+    "C": 300,
+    "D": 300,
+    "E": 300,
+    "F": 300,
+    "G": 200,
+    "H": 200,
+    "I": 200,
+    "J": 200,
+    "K": 200,
+    "L": 100,
+    "M": 100,
+    "N": 100,
+    "O": 100,
+    "P": 100
+};
+
+const ROWS_UPPER = ["A","B","C","D","E","F","G","H","I","J"];
+const ROWS_LOWER = ["K","L","M","N","O","P"];
+const COLS_PER_ROW = 18;
+const LEFT_COLS   = 9;
+const RIGHT_COLS  = 9;
+
+/* ========== CARPET / TICKET ZONE MAPPING (for labels) ========== */
+function getZoneClassForRow(row) {
+    if (row === "A" || row === "B") return "zone-500";
+    if (["C","D","E","F"].includes(row)) return "zone-300";
+    if (["G","H","I","J","K"].includes(row)) return "zone-200";
+    return "zone-100"; // L–P
+}
+
+function applyRowZoneClasses() {
+    const labelContainers = [
+        document.getElementById("upper-left-labels"),
+        document.getElementById("upper-right-labels"),
+        document.getElementById("lower-left-labels"),
+        document.getElementById("lower-right-labels")
+    ];
+    labelContainers.forEach(container => {
+        if (!container) return;
+        container.querySelectorAll("div[data-row]").forEach(div => {
+            const row = div.getAttribute("data-row");
+            const zoneClass = getZoneClassForRow(row);
+            div.classList.add(zoneClass);
+        });
+    });
+}
+
+/* ===========================
+   SEATING LAYOUT
+=========================== */
+
+function createSeat(id, container) {
+    if (!seats[id]) {
+        seats[id] = {
+            id: id,
+            status: "available",
+            name: "",
+            bookingSeats: [],
+            locked: false
+        };
+    }
+
+    const seat = document.createElement("div");
+    seat.className = "seat " + seats[id].status;
+    seat.dataset.id = id;
+    seat.textContent = id;
+
+    seat.addEventListener("mouseenter", e => showTooltip(e, id));
+    seat.addEventListener("mousemove", moveTooltip);
+    seat.addEventListener("mouseleave", hideTooltip);
+    seat.addEventListener("click", () => seatClicked(id, seat));
+
+    container.appendChild(seat);
+}
+
+function buildMap() {
+    document.getElementById("upper-left").innerHTML  = "";
+    document.getElementById("upper-right").innerHTML = "";
+    document.getElementById("lower-left").innerHTML  = "";
+    document.getElementById("lower-right").innerHTML = "";
+
+    ROWS_UPPER.forEach(rowLabel => {
+        for (let col = 1; col <= LEFT_COLS; col++) {
+            createSeat(rowLabel + "-" + col, document.getElementById("upper-left"));
+        }
+        for (let col = LEFT_COLS + 1; col <= COLS_PER_ROW; col++) {
+            createSeat(rowLabel + "-" + col, document.getElementById("upper-right"));
+        }
+    });
+
+    ROWS_LOWER.forEach(rowLabel => {
+        for (let col = 1; col <= LEFT_COLS; col++) {
+            createSeat(rowLabel + "-" + col, document.getElementById("lower-left"));
+        }
+        for (let col = LEFT_COLS + 1; col <= COLS_PER_ROW; col++) {
+            createSeat(rowLabel + "-" + col, document.getElementById("lower-right"));
+        }
+    });
+
+    applyRowZoneClasses();
+    refreshVisuals();
+}
+
+/* (rest of JS: seatClicked, sellSelectedCounter, blockSelectedSeats, tooltip, modal, search, import, backup, etc.) */
+/* — keep exactly as in your last working version — */
+
+loadData();
+buildMap();
+</script>
 </body>
 </html>
