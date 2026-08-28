@@ -13,7 +13,7 @@
         color: #2a1b12;
     }
 
-    /* HEADER: poster image + dark band */
+    /* HEADER: poster image */
     header {
         background: #2b1c13;
         color: white;
@@ -25,15 +25,6 @@
         max-height: 260px;
         object-fit: cover;
         display: block;
-    }
-    header h1 {
-        margin: 0;
-        padding: 10px 24px;
-        font-size: 22px;
-        letter-spacing: 0.06em;
-        text-transform: uppercase;
-        background: #2b1c13;
-        border-top: 1px solid rgba(255,255,255,0.1);
     }
 
     /* DASHBOARD */
@@ -150,7 +141,7 @@
         border: 1px solid #5f4129;
     }
 
-    /* Ticket zone colors – warmer palette */
+    /* Ticket zone colours */
     .zone-500 { background: #f3c36a; } /* front premium */
     .zone-300 { background: #e6d07d; }
     .zone-200 { background: #d9c581; }
@@ -195,23 +186,25 @@
         margin-bottom: 20px;
     }
 
+    /* ROW LABELS – aligned with seats */
     .row-labels {
         display: flex;
         flex-direction: column;
         justify-content: flex-start;
-        gap: 6px;
+        gap: 4px;               /* same as seat-block gap */
         margin-right: 4px;
         font-size: 14px;
-        line-height: 30px;
+        line-height: normal;    /* no extra line-height */
         color: #3a2620;
         font-family: "Courier New", monospace;
     }
     .row-labels div {
-        height: 30px;
+        width: 30px;            /* match seat width */
+        height: 30px;           /* match seat height */
         display: flex;
         align-items: center;
         justify-content: center;
-        padding: 0 6px;
+        padding: 0;
         border-radius: 4px;
         border: 1px solid rgba(58,38,32,0.25);
     }
@@ -370,19 +363,23 @@
             height: 24px;
             font-size: 8px;
         }
+        .row-labels div {
+            width: 24px;
+            height: 24px;
+        }
+        .seat-block {
+            grid-template-columns: repeat(9, 24px);
+            grid-auto-rows: 24px;
+        }
         .auditorium {
             padding: 8px;
             overflow-x: auto;
-        }
-        header h1 {
-            font-size: 18px;
         }
     }
 </style>
 </head>
 <body>
 <header>
-  <!-- change src to your actual image name -->
   <img
     src="frankenstein-header.jpg"
     alt="Frankenstein production poster – Tapan Theatre"
@@ -727,7 +724,7 @@ function blockSelectedSeats() {
     const blockName = prompt("Enter name or reason for blocking selected seats (e.g. VIP Guest, Reserved):");
     if (blockName === null) return;
     const name = blockName.trim();
-       if (!name) return;
+    if (!name) return;
 
     selected.forEach(seatElem => {
         const id = seatElem.dataset.id;
@@ -778,9 +775,7 @@ function updateDashboard() {
     document.getElementById("counterCount").textContent    = counter;
 }
 
-/* ===========================
-   TOOLTIP
-=========================== */
+/* TOOLTIP */
 function showTooltip(event, id) {
     const data = seats[id];
     const row = id.split("-")[0];
@@ -833,9 +828,7 @@ function hideTooltip() {
     document.getElementById("tooltip").style.display = "none";
 }
 
-/* ===========================
-   MODAL / CLICK ACTIONS
-=========================== */
+/* MODAL / CLICK ACTIONS */
 function openSeat(id) {
     const data = seats[id];
 
@@ -858,7 +851,6 @@ function openSeat(id) {
 <button class="btn-green" onclick="deliverBlockedBooking('${id}')">✓ Deliver Physical Ticket</button>
 <button class="btn-red" onclick="unblockSeat('${id}')">Release Block</button>`;
         } else {
-            // blocked-delivered: allow return to block-only, or release entirely
             buttons = `
 <button class="btn-dark" onclick="closeModal()">Close</button>
 <button class="btn-orange" onclick="returnBlockedToPending('${id}')">Return to Block (Undelivered)</button>
@@ -1089,9 +1081,7 @@ function returnBlockedToPending(id) {
     refreshVisuals();
 }
 
-/* ===========================
-   SEARCH (name or seat)
-=========================== */
+/* SEARCH (name or seat) */
 function handleSearchInput() {
     const value = document.getElementById("searchBox").value.trim();
     document.querySelectorAll(".seat").forEach(el => el.classList.remove("highlight"));
@@ -1187,9 +1177,7 @@ Status: ${statusText}
     resultBox.style.display = "block";
 }
 
-/* ===========================
-   CSV IMPORT (Name,Seat)
-=========================== */
+/* CSV IMPORT (Name,Seat) */
 function addOnlineBooking(name, bookingSeats) {
     bookingSeats.forEach(id => {
         if (!seats[id]) {
@@ -1214,8 +1202,6 @@ function importCSV() {
         const reader = new FileReader();
         reader.onload = e => {
             const text = e.target.result;
-            console.log("CSV text:\n", text);
-
             const lines = text.split(/\r?\n/).filter(line => line.trim().length > 0);
             let importedCount = 0;
 
@@ -1255,7 +1241,6 @@ function importCSV() {
 
                 if (!seatList.length) continue;
 
-                console.log("Parsed CSV booking:", { name, seatList });
                 addOnlineBooking(name, seatList);
                 importedCount++;
             }
@@ -1270,9 +1255,7 @@ function importCSV() {
     input.click();
 }
 
-/* ===========================
-   PASTE VENDOR LIST (Name,Seat)
-=========================== */
+/* PASTE VENDOR LIST */
 function importVendorText() {
     const text = prompt(
         "Paste vendor Name,Seat list here (one entry per line):\n\n" +
@@ -1301,7 +1284,7 @@ function importVendorText() {
         if (!line) continue;
 
         const firstCommaIndex = line.indexOf(",");
-               if (firstCommaIndex === -1) continue;
+        if (firstCommaIndex === -1) continue;
 
         const name = line.slice(0, firstCommaIndex).trim();
         let seatsCell = line.slice(firstCommaIndex + 1).trim();
@@ -1323,7 +1306,6 @@ function importVendorText() {
 
         if (!seatList.length) continue;
 
-        console.log("Parsed vendor booking:", { name, seatList });
         addOnlineBooking(name, seatList);
         importedCount++;
     }
@@ -1332,27 +1314,7 @@ function importVendorText() {
     alert("Vendor list import completed: " + importedCount + " entry/entries.");
 }
 
-/* ===========================
-   LOCAL STORAGE / BACKUP / CSV EXPORT / RESET
-=========================== */
-function saveData() {
-    localStorage.setItem("auditoriumSeatData", JSON.stringify({ seats, lockedRows }));
-}
-
-function loadData() {
-    const saved = localStorage.getItem("auditoriumSeatData");
-    if (saved) {
-        try {
-            const parsed = JSON.parse(saved);
-            seats = parsed.seats || {};
-            lockedRows = parsed.lockedRows || {};
-        } catch {
-            seats = {};
-            lockedRows = {};
-        }
-    }
-}
-
+/* LOCAL STORAGE / BACKUP / CSV EXPORT / RESET */
 function exportBackup() {
     const blob = new Blob([JSON.stringify({ seats, lockedRows }, null, 2)], { type: "application/json" });
     const url = URL.createObjectURL(blob);
@@ -1391,6 +1353,24 @@ function restoreBackup() {
     };
 
     input.click();
+}
+
+function saveData() {
+    localStorage.setItem("auditoriumSeatData", JSON.stringify({ seats, lockedRows }));
+}
+
+function loadData() {
+    const saved = localStorage.getItem("auditoriumSeatData");
+    if (saved) {
+        try {
+            const parsed = JSON.parse(saved);
+            seats = parsed.seats || {};
+            lockedRows = parsed.lockedRows || {};
+        } catch {
+            seats = {};
+            lockedRows = {};
+        }
+    }
 }
 
 function exportCSV() {
@@ -1433,9 +1413,7 @@ function resetAll() {
     location.reload();
 }
 
-/* ===========================
-   UTIL
-=========================== */
+/* UTIL */
 function escapeHTML(value) {
     return String(value)
         .replace(/&/g, "&amp;")
@@ -1445,9 +1423,7 @@ function escapeHTML(value) {
         .replace(/'/g, "&#039;");
 }
 
-/* ===========================
-   START
-=========================== */
+/* START */
 loadData();
 buildMap();
 </script>
