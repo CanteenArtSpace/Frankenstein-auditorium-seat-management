@@ -40,7 +40,7 @@
     }
     .available-stat { background: #ffffff; border: 1px solid #ccc; }
     .pending-stat   { background: #ece75f; }  /* Online Pending */
-    .delivered-stat { background: #5ced73; }  /* Online Delivered */
+    .delivered-stat { background: #5ced73; }  /* Online Delivered (and blocked delivered) */
     .counter-stat   { background: #41fdfe; }  /* Counter Sold */
     .total-money-stat { background: #ffe0b2; } /* Counter total */
 
@@ -172,7 +172,7 @@
         border-radius: 4px;
     }
 
-    /* Carpet / ticket category colors for rows */
+    /* Carpet / ticket zone colors for rows */
     .zone-500 { background: #ffe9b3; } /* gold-ish */
     .zone-300 { background: #d6f7ff; } /* light teal/blue */
     .zone-200 { background: #e3edff; } /* pale blue */
@@ -227,6 +227,7 @@
     .online-delivered { background: #5ced73; color: #222; }
     .counter-sold     { background: #41fdfe; color: #222; }
     .blocked          { background: #9e9e9e; color: #fff; }
+    .blocked-delivered { background: #5ced73; color: #222; } /* blocked seats with physical tickets delivered */
 
     .seat.selected {
         outline: 2px solid #000;
@@ -336,7 +337,7 @@
   <div class="stat">Total<br><span id="totalCount">0</span></div>
   <div class="stat available-stat">Available<br><span id="availableCount">0</span></div>
   <div class="stat pending-stat">Online Pending<br><span id="pendingCount">0</span></div>
-  <div class="stat delivered-stat">Online Delivered<br><span id="deliveredCount">0</span></div>
+  <div class="stat delivered-stat">Delivered<br><span id="deliveredCount">0</span></div>
   <div class="stat counter-stat">Counter Sold<br><span id="counterCount">0</span></div>
   <div class="stat total-money-stat">
     Counter Sale Total<br>
@@ -359,6 +360,7 @@
   <button class="btn-dark" onclick="exportBackup()">Backup</button>
   <button class="btn-dark" onclick="restoreBackup()">Restore</button>
   <button class="btn-dark" onclick="exportCSV()">Export CSV</button>
+  <button class="btn-dark" onclick="clearSelectedSeats()">Clear Selected</button>
   <button class="btn-red" onclick="resetAll()">Reset</button>
 </div>
 
@@ -373,7 +375,7 @@
     <div class="legend-box legend-pending"></div>Online Pending
   </div>
   <div class="legend-item">
-    <div class="legend-box legend-delivered"></div>Online Delivered
+    <div class="legend-box legend-delivered"></div>Delivered (Online + Blocked)
   </div>
   <div class="legend-item">
     <div class="legend-box legend-counter"></div>Counter Sold
@@ -577,14 +579,15 @@ function seatClicked(id, seatElem) {
     const data = seats[id];
     const row = id.split("-")[0];
 
-    // Online or counter seats open modal
-    if (data.status === "online-pending" || data.status === "online-delivered" || data.status === "counter-sold") {
-        openSeat(id);
-        return;
-    }
-
-    // Blocked or no price: open modal
-    if (data.status === "blocked" || !ROW_PRICES[row]) {
+    // Online, counter, or blocked seats open modal
+    if (
+        data.status === "online-pending" ||
+        data.status === "online-delivered" ||
+        data.status === "counter-sold" ||
+        data.status === "blocked" ||
+        data.status === "blocked-delivered" ||
+        !ROW_PRICES[row]
+    ) {
         openSeat(id);
         return;
     }
@@ -609,6 +612,17 @@ function recalcCounterSaleTotal() {
         if (price) total += price;
     });
     counterSaleTotal = total;
+    document.getElementById("counterTotal").textContent = counterSaleTotal;
+}
+
+/* ===========================
+   CLEAR SELECTED
+=========================== */
+function clearSelectedSeats() {
+    document.querySelectorAll(".seat.selected").forEach(seatElem => {
+        seatElem.classList.remove("selected");
+    });
+    counterSaleTotal = 0;
     document.getElementById("counterTotal").textContent = counterSaleTotal;
 }
 
@@ -697,7 +711,7 @@ function updateDashboard() {
         total++;
         if (seat.status === "available")        available++;
         if (seat.status === "online-pending")   pending++;
-        if (seat.status === "online-delivered") delivered++;
+        if (seat.status === "online-delivered" || seat.status === "blocked-delivered") delivered++;
         if (seat.status === "counter-sold")     counter++;
     });
 
@@ -727,6 +741,11 @@ function showTooltip(event, id) {
         text += "Status: Available";
     } else if (data.status === "blocked") {
         text += "Status: Blocked<br>";
+        if (data.name) {
+            text += "Blocked for: <strong>" + escapeHTML(data.name) + "</strong><br>";
+        }
+    } else if (data.status === "blocked-delivered") {
+        text += "Status: Blocked — Physical Ticket Delivered<br>";
         if (data.name) {
             text += "Blocked for: <strong>" + escapeHTML(data.name) + "</strong><br>";
         }
@@ -768,13 +787,27 @@ function openSeat(id) {
     let content = "";
     let buttons = "";
 
-    if (data.status === "blocked") {
+    if (data.status === "blocked" || data.status === "blocked-delivered") {
         content = `
-<p><strong>Status:</strong> Blocked</p>
+<p><strong>Status:</strong> ${
+    data.status === "blocked"
+        ? "Blocked"
+        : "Blocked — Physical Ticket Delivered"
+}</p>
 <p>Blocked for: <strong>${escapeHTML(data.name || "N/A")}</strong></p>`;
-        buttons = `
+
+        if (data.status === "blocked") {
+            buttons = `
 <button class="btn-dark" onclick="closeModal()">Close</button>
+<button class="btn-green" onclick="deliverBlockedBooking('${id}')">✓ Deliver Physical Ticket</button>
 <button class="btn-red" onclick="unblockSeat('${id}')">Release Block</button>`;
+        } else {
+            // blocked-delivered: allow return to block-only, or release entirely
+            buttons = `
+<button class="btn-dark" onclick="closeModal()">Close</button>
+<button class="btn-orange" onclick="returnBlockedToPending('${id}')">Return to Block (Undelivered)</button>
+<button class="btn-red" onclick="unblockSeat('${id}')">Release Block</button>`;
+        }
     } else if (data.status === "counter-sold") {
         content = `
 <p><strong>Status:</strong> Counter Sold</p>
@@ -830,7 +863,7 @@ function sellCounter(id) {
     const row = id.split("-")[0];
     const data = seats[id];
 
-    if (data.status === "blocked" || !ROW_PRICES[row]) {
+    if (data.status === "blocked" || data.status === "blocked-delivered" || !ROW_PRICES[row]) {
         alert("Seat " + id + " is blocked or not for sale.");
         return;
     }
@@ -855,7 +888,7 @@ function releaseSeat(id) {
 
 function unblockSeat(id) {
     const data = seats[id];
-    if (!data || data.status !== "blocked") return;
+    if (!data || (data.status !== "blocked" && data.status !== "blocked-delivered")) return;
 
     if (!confirm("Release block on seat " + id + " and make it Available again?")) return;
 
@@ -868,7 +901,7 @@ function unblockSeat(id) {
     refreshVisuals();
 }
 
-// Deliver all seats for this customer
+// Deliver all online seats for this customer
 function deliverBooking(id) {
     const bookingSeat = seats[id];
     if (!bookingSeat || !bookingSeat.name) return;
@@ -900,7 +933,7 @@ function deliverBooking(id) {
     refreshVisuals();
 }
 
-// Return all seats for this customer to pending
+// Return all online seats for this customer to pending
 function returnToPending(id) {
     const bookingSeat = seats[id];
     if (!bookingSeat || !bookingSeat.name) return;
@@ -921,6 +954,76 @@ function returnToPending(id) {
     seatList.forEach(seatID => {
         if (seats[seatID]) {
             seats[seatID].status = "online-pending";
+            seats[seatID].bookingSeats = seatList;
+        }
+    });
+
+    saveData();
+    closeModal();
+    refreshVisuals();
+}
+
+// Deliver all blocked seats for this person (blocked -> blocked-delivered)
+function deliverBlockedBooking(id) {
+    const seatData = seats[id];
+    if (!seatData || !seatData.name) return;
+
+    const name = seatData.name;
+
+    const seatList = Object.values(seats)
+        .filter(s => s.status === "blocked" && s.name === name)
+        .map(s => s.id)
+        .sort();
+
+    if (!seatList.length) {
+        alert("No blocked seats found for " + name + ".");
+        return;
+    }
+
+    if (!confirm(
+        "Confirm physical ticket delivery for blocked seats?\n\n" +
+        name + "\n" +
+        seatList.join(", ")
+    )) return;
+
+    seatList.forEach(seatID => {
+        if (seats[seatID]) {
+            seats[seatID].status = "blocked-delivered";
+            seats[seatID].bookingSeats = seatList;
+        }
+    });
+
+    saveData();
+    closeModal();
+    refreshVisuals();
+}
+
+// Return blocked-delivered seats back to plain blocked
+function returnBlockedToPending(id) {
+    const seatData = seats[id];
+    if (!seatData || !seatData.name) return;
+
+    const name = seatData.name;
+
+    const seatList = Object.values(seats)
+        .filter(s => s.status === "blocked-delivered" && s.name === name)
+        .map(s => s.id)
+        .sort();
+
+    if (!seatList.length) {
+        alert("No delivered blocked seats found for " + name + ".");
+        return;
+    }
+
+    if (!confirm(
+        "Return this blocked booking to Undelivered?\n\n" +
+        name + "\n" +
+        seatList.join(", ")
+    )) return;
+
+    seatList.forEach(seatID => {
+        if (seats[seatID]) {
+            seats[seatID].status = "blocked";
             seats[seatID].bookingSeats = seatList;
         }
     });
@@ -977,7 +1080,7 @@ function searchCustomerByName(lower) {
 
         bookings[seat.name].seats.add(seat.id);
         if (seat.status === "online-pending")  bookings[seat.name].hasPending = true;
-        if (seat.status === "online-delivered") bookings[seat.name].hasDelivered = true;
+        if (seat.status === "online-delivered" || seat.status === "blocked-delivered") bookings[seat.name].hasDelivered = true;
     });
 
     resultBox.innerHTML = "";
@@ -995,11 +1098,11 @@ function searchCustomerByName(lower) {
 
         let statusText = "";
         if (booking.hasPending && booking.hasDelivered) {
-            statusText = "Online — Mixed (Pending + Delivered)";
+            statusText = "Mixed (Pending + Delivered)";
         } else if (booking.hasPending) {
-            statusText = "Online — Pending";
+            statusText = "Pending";
         } else if (booking.hasDelivered) {
-            statusText = "Online — Delivered";
+            statusText = "Delivered";
         } else {
             statusText = "Unknown";
         }
@@ -1243,7 +1346,7 @@ function exportCSV() {
             bookingType = "Online";
         } else if (seat.status === "counter-sold") {
             bookingType = "Counter";
-        } else if (seat.status === "blocked") {
+        } else if (seat.status === "blocked" || seat.status === "blocked-delivered") {
             bookingType = "Blocked";
         }
 
@@ -1256,7 +1359,7 @@ function exportCSV() {
             "\n";
     });
 
-    const blob = new Blob([csv], { type: "text/cv;charset=utf-8;" });
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
     const url  = URL.createObjectURL(blob);
     const a    = document.createElement("a");
     a.href = url;
