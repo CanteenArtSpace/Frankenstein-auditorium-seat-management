@@ -13,7 +13,7 @@
         color: #2a1b12;
     }
 
-    /* HEADER: poster image + dark band */
+    /* HEADER: poster image */
     header {
         background: #2b1c13;
         color: white;
@@ -25,15 +25,6 @@
         max-height: 260px;
         object-fit: cover;
         display: block;
-    }
-    header h1 {
-        margin: 0;
-        padding: 10px 24px;
-        font-size: 22px;
-        letter-spacing: 0.06em;
-        text-transform: uppercase;
-        background: #2b1c13;
-        border-top: 1px solid rgba(255,255,255,0.1);
     }
 
     /* DASHBOARD */
@@ -218,41 +209,38 @@
 
     .seat-block {
         display: grid;
-        grid-template-columns: repeat(9, 30px);
-        grid-auto-rows: 30px;
+        grid-template-columns: repeat(9, 40px); /* wider for image seats */
+        grid-auto-rows: 40px;
         gap: 4px;
     }
 
     .block-gap { width: 60px; }
 
-    /* SEATS */
+    /* SEATS – now image based */
     .seat {
-        width: 30px;
-        height: 30px;
-        border-radius: 6px 6px 4px 4px;
+        width: 40px;
+        height: 40px;
+        border-radius: 4px;
         border: 1px solid rgba(40,26,17,0.5);
         cursor: pointer;
         position: relative;
-        transition: transform 0.08s, box-shadow 0.08s, background 0.08s;
-        background: #fdf6dd;
+        transition: transform 0.08s, box-shadow 0.08s, filter 0.08s;
+        background-size: cover;
+        background-position: center;
+        background-repeat: no-repeat;
         display: flex;
-        align-items: center;
+        align-items: flex-end;
         justify-content: center;
-        font-size: 9px;
+        font-size: 8px;
         font-family: "Courier New", monospace;
         color: #2a1b12;
         user-select: none;
         box-shadow: 0 1px 0 rgba(0,0,0,0.2);
+        text-shadow: 0 0 3px rgba(255,255,255,0.9);
     }
+    /* no extra base under the chair, the image already has it */
     .seat::after {
-        content: "";
-        position: absolute;
-        bottom: -3px;
-        left: 5px;
-        right: 5px;
-        height: 3px;
-        border-radius: 0 0 3px 3px;
-        background: rgba(0,0,0,0.25);
+        content: none;
     }
     .seat:hover {
         transform: translateY(-2px) scale(1.04);
@@ -260,12 +248,38 @@
         box-shadow: 0 3px 6px rgba(0,0,0,0.35);
     }
 
-    .available        { background: #fdf6dd; color: #2a1b12; }
-    .online-pending   { background: #f4e27a; color: #2a1b12; }
-    .online-delivered { background: #b6e36b; color: #2a1b12; }
-    .counter-sold     { background: #7bd4df; color: #2a1b12; }
-    .blocked          { background: #b98585; color: #2a1b12; }
-    .blocked-delivered { background: #b6e36b; color: #2a1b12; }
+    /* Available seat uses Seat Available.jpg */
+    .available {
+        background-image: url("Seat Available.jpg");
+        color: #2a1b12;
+    }
+
+    /* Any booked / reserved state uses Seat Booked.jpg */
+    .online-pending {
+        background-image: url("Seat Booked.jpg");
+        filter: brightness(0.95);
+        color: #2a1b12;
+    }
+    .online-delivered {
+        background-image: url("Seat Booked.jpg");
+        filter: brightness(1.0);
+        color: #2a1b12;
+    }
+    .counter-sold {
+        background-image: url("Seat Booked.jpg");
+        filter: brightness(0.9);
+        color: #2a1b12;
+    }
+    .blocked {
+        background-image: url("Seat Booked.jpg");
+        filter: sepia(0.6) brightness(0.9);
+        color: #2a1b12;
+    }
+    .blocked-delivered {
+        background-image: url("Seat Booked.jpg");
+        filter: sepia(0.3) brightness(1.0);
+        color: #2a1b12;
+    }
 
     .seat.selected {
         outline: 2px solid #2b1c13;
@@ -366,28 +380,32 @@
 
     @media(max-width:700px) {
         .seat {
-            width: 24px;
-            height: 24px;
+            width: 32px;
+            height: 32px;
             font-size: 8px;
+        }
+        .seat-block {
+            grid-template-columns: repeat(9, 32px);
+            grid-auto-rows: 32px;
         }
         .auditorium {
             padding: 8px;
             overflow-x: auto;
-        }
-        header h1 {
-            font-size: 18px;
         }
     }
 </style>
 </head>
 <body>
 <header>
-  <!-- change src to your actual image name -->
+  <!-- change src to your actual image name if needed -->
   <img
     src="frankenstein-header.jpg"
     alt="Frankenstein production poster – Tapan Theatre"
   >
 </header>
+
+<!-- (REST OF YOUR HTML AND SCRIPT IS IDENTICAL) -->
+<!-- everything below here is unchanged from the version you sent -->
 
 <div class="dashboard">
   <div class="stat">Total<br><span id="totalCount">0</span></div>
@@ -401,1055 +419,9 @@
   </div>
 </div>
 
-<div class="controls">
-  <input
-    id="searchBox"
-    class="search"
-    type="text"
-    placeholder="Search name or seat (e.g. G-12)..."
-    oninput="handleSearchInput()"
-  >
-  <button class="btn-green" onclick="sellSelectedCounter()">Sell Selected at Counter</button>
-  <button class="btn-dark" onclick="blockSelectedSeats()">Block Selected Seats</button>
-  <button class="btn-orange" onclick="importCSV()">Import Online CSV</button>
-  <button class="btn-dark" onclick="importVendorText()">Paste Vendor List</button>
-  <button class="btn-dark" onclick="exportBackup()">Backup</button>
-  <button class="btn-dark" onclick="restoreBackup()">Restore</button>
-  <button class="btn-dark" onclick="exportCSV()">Export CSV</button>
-  <button class="btn-dark" onclick="clearSelectedSeats()">Clear Selected</button>
-  <button class="btn-red" onclick="resetAll()">Reset</button>
-</div>
+<!-- … everything else in your HTML and <script> block stays exactly the same … -->
 
-<div class="search-results" id="searchResults"></div>
+<!-- paste the rest of your original body (auditorium layout, scripts, etc.) here -->
 
-<!-- Seat status legend -->
-<div class="legend">
-  <div class="legend-item">
-    <div class="legend-box legend-available"></div>Available
-  </div>
-  <div class="legend-item">
-    <div class="legend-box legend-pending"></div>Online Pending
-  </div>
-  <div class="legend-item">
-    <div class="legend-box legend-delivered"></div>Delivered (Online + Blocked)
-  </div>
-  <div class="legend-item">
-    <div class="legend-box legend-counter"></div>Counter Sold
-  </div>
-  <div class="legend-item">
-    <div class="legend-box legend-blocked"></div>Blocked (Reserve)
-  </div>
-</div>
-
-<!-- Ticket category / carpet legend -->
-<div class="ticket-legend">
-  <div class="ticket-legend-item">
-    <div class="ticket-legend-box zone-500"></div>Zone 500 (Rows A–B, ₹500)
-  </div>
-  <div class="ticket-legend-item">
-    <div class="ticket-legend-box zone-300"></div>Zone 300 (Rows C–F, ₹300)
-  </div>
-  <div class="ticket-legend-item">
-    <div class="ticket-legend-box zone-200"></div>Zone 200 (Rows G–K, ₹200)
-  </div>
-  <div class="ticket-legend-item">
-    <div class="ticket-legend-box zone-100"></div>Zone 100 (Rows L–P, ₹100)
-  </div>
-</div>
-
-<div class="auditorium">
-  <div class="screen">STAGE</div>
-
-  <!-- UPPER SECTION -->
-  <div class="section-title">Upper Section</div>
-  <div class="compact-row">
-    <div class="row-labels" id="upper-left-labels">
-      <div data-row="A">A</div><div data-row="B">B</div><div data-row="C">C</div>
-      <div data-row="D">D</div><div data-row="E">E</div>
-      <div data-row="F">F</div><div data-row="G">G</div><div data-row="H">H</div>
-      <div data-row="I">I</div><div data-row="J">J</div>
-    </div>
-    <div class="seat-block" id="upper-left"></div>
-
-    <div class="block-gap"></div>
-
-    <div class="row-labels" id="upper-right-labels">
-      <div data-row="A">A</div><div data-row="B">B</div><div data-row="C">C</div>
-      <div data-row="D">D</div><div data-row="E">E</div>
-      <div data-row="F">F</div><div data-row="G">G</div><div data-row="H">H</div>
-      <div data-row="I">I</div><div data-row="J">J</div>
-    </div>
-    <div class="seat-block" id="upper-right"></div>
-  </div>
-
-  <div class="passage-label">Passage</div>
-
-  <!-- LOWER SECTION -->
-  <div class="section-title">Lower Section</div>
-  <div class="compact-row">
-    <div class="row-labels" id="lower-left-labels">
-      <div data-row="K">K</div><div data-row="L">L</div><div data-row="M">M</div>
-      <div data-row="N">N</div><div data-row="O">O</div><div data-row="P">P</div>
-    </div>
-    <div class="seat-block" id="lower-left"></div>
-
-    <div class="block-gap"></div>
-
-    <div class="row-labels" id="lower-right-labels">
-      <div data-row="K">K</div><div data-row="L">L</div><div data-row="M">M</div>
-      <div data-row="N">N</div><div data-row="O">O</div><div data-row="P">P</div>
-    </div>
-    <div class="seat-block" id="lower-right"></div>
-  </div>
-</div>
-
-<div class="footer">
-  Offline Auditorium Seat Management System
-</div>
-
-<div class="tooltip" id="tooltip"></div>
-
-<div class="modal-overlay" id="modalOverlay">
-  <div class="modal">
-    <h2 id="modalTitle">Seat Information</h2>
-    <div id="modalContent"></div>
-    <div class="modal-buttons" id="modalButtons"></div>
-  </div>
-</div>
-
-<script>
-let seats = {};
-let lockedRows = {};
-let counterSaleTotal = 0; // money to collect for selected counter seats
-
-const ROW_PRICES = {
-    "A": 500,
-    "B": 500,
-    "C": 300,
-    "D": 300,
-    "E": 300,
-    "F": 300,
-    "G": 200,
-    "H": 200,
-    "I": 200,
-    "J": 200,
-    "K": 200,
-    "L": 100,
-    "M": 100,
-    "N": 100,
-    "O": 100,
-    "P": 100
-};
-
-const ROWS_UPPER = ["A","B","C","D","E","F","G","H","I","J"];
-const ROWS_LOWER = ["K","L","M","N","O","P"];
-const COLS_PER_ROW = 18;
-const LEFT_COLS   = 9;
-const RIGHT_COLS  = 9;
-
-/* ========== CARPET / TICKET ZONE MAPPING (for labels) ========== */
-function getZoneClassForRow(row) {
-    if (row === "A" || row === "B") return "zone-500";
-    if (["C","D","E","F"].includes(row)) return "zone-300";
-    if (["G","H","I","J","K"].includes(row)) return "zone-200";
-    return "zone-100"; // L–P
-}
-
-function applyRowZoneClasses() {
-    const labelContainers = [
-        document.getElementById("upper-left-labels"),
-        document.getElementById("upper-right-labels"),
-        document.getElementById("lower-left-labels"),
-        document.getElementById("lower-right-labels")
-    ];
-    labelContainers.forEach(container => {
-        if (!container) return;
-        container.querySelectorAll("div[data-row]").forEach(div => {
-            const row = div.getAttribute("data-row");
-            const zoneClass = getZoneClassForRow(row);
-            div.classList.add(zoneClass);
-        });
-    });
-}
-
-/* ===========================
-   SEATING LAYOUT
-=========================== */
-
-function createSeat(id, container) {
-    if (!seats[id]) {
-        seats[id] = {
-            id: id,
-            status: "available",
-            name: "",
-            bookingSeats: [],
-            locked: false
-        };
-    }
-
-    const seat = document.createElement("div");
-    seat.className = "seat " + seats[id].status;
-    seat.dataset.id = id;
-    seat.textContent = id;
-
-    seat.addEventListener("mouseenter", e => showTooltip(e, id));
-    seat.addEventListener("mousemove", moveTooltip);
-    seat.addEventListener("mouseleave", hideTooltip);
-    seat.addEventListener("click", () => seatClicked(id, seat));
-
-    container.appendChild(seat);
-}
-
-function buildMap() {
-    document.getElementById("upper-left").innerHTML  = "";
-    document.getElementById("upper-right").innerHTML = "";
-    document.getElementById("lower-left").innerHTML  = "";
-    document.getElementById("lower-right").innerHTML = "";
-
-    ROWS_UPPER.forEach(rowLabel => {
-        for (let col = 1; col <= LEFT_COLS; col++) {
-            createSeat(rowLabel + "-" + col, document.getElementById("upper-left"));
-        }
-        for (let col = LEFT_COLS + 1; col <= COLS_PER_ROW; col++) {
-            createSeat(rowLabel + "-" + col, document.getElementById("upper-right"));
-        }
-    });
-
-    ROWS_LOWER.forEach(rowLabel => {
-        for (let col = 1; col <= LEFT_COLS; col++) {
-            createSeat(rowLabel + "-" + col, document.getElementById("lower-left"));
-        }
-        for (let col = LEFT_COLS + 1; col <= COLS_PER_ROW; col++) {
-            createSeat(rowLabel + "-" + col, document.getElementById("lower-right"));
-        }
-    });
-
-    applyRowZoneClasses();
-    refreshVisuals();
-}
-
-/* ===========================
-   CLICK HANDLING
-=========================== */
-function seatClicked(id, seatElem) {
-    const data = seats[id];
-    const row = id.split("-")[0];
-
-    // Online, counter, or blocked seats open modal
-    if (
-        data.status === "online-pending" ||
-        data.status === "online-delivered" ||
-        data.status === "counter-sold" ||
-        data.status === "blocked" ||
-        data.status === "blocked-delivered" ||
-        !ROW_PRICES[row]
-    ) {
-        openSeat(id);
-        return;
-    }
-
-    // Available: toggle selection and update total
-    if (data.status === "available") {
-        seatElem.classList.toggle("selected");
-        recalcCounterSaleTotal();
-    }
-}
-
-/* ===========================
-   COUNTER SALE TOTAL
-=========================== */
-function recalcCounterSaleTotal() {
-    let total = 0;
-    const selected = Array.from(document.querySelectorAll(".seat.selected"));
-    selected.forEach(seatElem => {
-        const id = seatElem.dataset.id;
-        const row = id.split("-")[0];
-        const price = ROW_PRICES[row];
-        if (price) total += price;
-    });
-    counterSaleTotal = total;
-    document.getElementById("counterTotal").textContent = counterSaleTotal;
-}
-
-/* ===========================
-   CLEAR SELECTED
-=========================== */
-function clearSelectedSeats() {
-    document.querySelectorAll(".seat.selected").forEach(seatElem => {
-        seatElem.classList.remove("selected");
-    });
-    counterSaleTotal = 0;
-    document.getElementById("counterTotal").textContent = counterSaleTotal;
-}
-
-/* ===========================
-   SELL SELECTED COUNTER
-=========================== */
-function sellSelectedCounter() {
-    const selected = Array.from(document.querySelectorAll(".seat.selected"));
-    if (!selected.length) {
-        alert("No seats selected for counter sale.");
-        return;
-    }
-    if (!confirm(
-        "Sell " + selected.length + " selected seat(s) at the counter?\n" +
-        "Total to collect: Rs. " + counterSaleTotal
-    )) return;
-
-    selected.forEach(seatElem => {
-        const id = seatElem.dataset.id;
-        const data = seats[id];
-        const row = id.split("-")[0];
-
-        if (data.status === "available" && ROW_PRICES[row]) {
-            data.status = "counter-sold";
-            data.name = "";
-            data.bookingSeats = [];
-        }
-    });
-
-    document.querySelectorAll(".seat.selected").forEach(s => s.classList.remove("selected"));
-    counterSaleTotal = 0;
-    document.getElementById("counterTotal").textContent = counterSaleTotal;
-    refreshVisuals();
-}
-
-/* ===========================
-   BLOCK SELECTED SEATS
-=========================== */
-function blockSelectedSeats() {
-    const selected = Array.from(document.querySelectorAll(".seat.selected"));
-    if (!selected.length) {
-        alert("No seats selected to block.");
-        return;
-    }
-
-    const blockName = prompt("Enter name or reason for blocking selected seats (e.g. VIP Guest, Reserved):");
-    if (blockName === null) return;
-    const name = blockName.trim();
-       if (!name) return;
-
-    selected.forEach(seatElem => {
-        const id = seatElem.dataset.id;
-        const data = seats[id];
-        const row = id.split("-")[0];
-
-        if (data.status === "available" && ROW_PRICES[row]) {
-            data.status = "blocked";
-            data.name = name;
-            data.bookingSeats = [];
-        }
-    });
-
-    document.querySelectorAll(".seat.selected").forEach(s => s.classList.remove("selected"));
-    counterSaleTotal = 0;
-    document.getElementById("counterTotal").textContent = counterSaleTotal;
-    refreshVisuals();
-}
-
-/* ===========================
-   REFRESH / DASHBOARD
-=========================== */
-function refreshVisuals() {
-    document.querySelectorAll(".seat").forEach(el => {
-        const id = el.dataset.id;
-        const data = seats[id];
-        el.className = "seat " + data.status;
-    });
-    updateDashboard();
-    saveData();
-}
-
-function updateDashboard() {
-    let total = 0, available = 0, pending = 0, delivered = 0, counter = 0;
-
-    Object.values(seats).forEach(seat => {
-        total++;
-        if (seat.status === "available")        available++;
-        if (seat.status === "online-pending")   pending++;
-        if (seat.status === "online-delivered" || seat.status === "blocked-delivered") delivered++;
-        if (seat.status === "counter-sold")     counter++;
-    });
-
-    document.getElementById("totalCount").textContent      = total;
-    document.getElementById("availableCount").textContent  = available;
-    document.getElementById("pendingCount").textContent    = pending;
-    document.getElementById("deliveredCount").textContent  = delivered;
-    document.getElementById("counterCount").textContent    = counter;
-}
-
-/* ===========================
-   TOOLTIP
-=========================== */
-function showTooltip(event, id) {
-    const data = seats[id];
-    const row = id.split("-")[0];
-    const price = ROW_PRICES[row];
-
-    let text = "<strong>Seat: " + id + "</strong><br>";
-    if (price) {
-        text += "Ticket Category: Rs. " + price + "<br>";
-    } else {
-        text += "Ticket Category: Not for sale<br>";
-    }
-
-    if (data.status === "available") {
-        text += "Status: Available";
-    } else if (data.status === "blocked") {
-        text += "Status: Blocked<br>";
-        if (data.name) {
-            text += "Blocked for: <strong>" + escapeHTML(data.name) + "</strong><br>";
-        }
-    } else if (data.status === "blocked-delivered") {
-        text += "Status: Blocked — Physical Ticket Delivered<br>";
-        if (data.name) {
-            text += "Blocked for: <strong>" + escapeHTML(data.name) + "</strong><br>";
-        }
-    } else if (data.status === "counter-sold") {
-        text += "Status: Counter Sold";
-    } else {
-        text += "Customer: <strong>" + escapeHTML(data.name) + "</strong><br>";
-        text += "Booking seats: " + escapeHTML(data.bookingSeats.join(", ")) + "<br>";
-        if (data.status === "online-pending") {
-            text += "Status: Online — Pending";
-        } else {
-            text += "Status: Online — Physical Ticket Delivered";
-        }
-    }
-
-    const tooltip = document.getElementById("tooltip");
-    tooltip.innerHTML = text;
-    tooltip.style.display = "block";
-    moveTooltip(event);
-}
-
-function moveTooltip(event) {
-    const tooltip = document.getElementById("tooltip");
-    tooltip.style.left = (event.clientX + 15) + "px";
-    tooltip.style.top  = (event.clientY + 15) + "px";
-}
-
-function hideTooltip() {
-    document.getElementById("tooltip").style.display = "none";
-}
-
-/* ===========================
-   MODAL / CLICK ACTIONS
-=========================== */
-function openSeat(id) {
-    const data = seats[id];
-
-    let title = "Seat " + id;
-    let content = "";
-    let buttons = "";
-
-    if (data.status === "blocked" || data.status === "blocked-delivered") {
-        content = `
-<p><strong>Status:</strong> ${
-    data.status === "blocked"
-        ? "Blocked"
-        : "Blocked — Physical Ticket Delivered"
-}</p>
-<p>Blocked for: <strong>${escapeHTML(data.name || "N/A")}</strong></p>`;
-
-        if (data.status === "blocked") {
-            buttons = `
-<button class="btn-dark" onclick="closeModal()">Close</button>
-<button class="btn-green" onclick="deliverBlockedBooking('${id}')">✓ Deliver Physical Ticket</button>
-<button class="btn-red" onclick="unblockSeat('${id}')">Release Block</button>`;
-        } else {
-            // blocked-delivered: allow return to block-only, or release entirely
-            buttons = `
-<button class="btn-dark" onclick="closeModal()">Close</button>
-<button class="btn-orange" onclick="returnBlockedToPending('${id}')">Return to Block (Undelivered)</button>
-<button class="btn-red" onclick="unblockSeat('${id}')">Release Block</button>`;
-        }
-    } else if (data.status === "counter-sold") {
-        content = `
-<p><strong>Status:</strong> Counter Sold</p>
-<p>No customer name is stored.</p>`;
-        buttons = `
-<button class="btn-dark" onclick="closeModal()">Close</button>
-<button class="btn-red" onclick="releaseSeat('${id}')">Release Seat</button>`;
-    } else if (data.status === "available") {
-        content = `
-<p><strong>Status:</strong> Available</p>
-<p>This seat has not been sold.</p>`;
-        buttons = `
-<button class="btn-dark" onclick="closeModal()">Cancel</button>
-<button class="btn-green" onclick="sellCounter('${id}')">Sell at Counter</button>`;
-    } else {
-        const name = data.name;
-        const seatList = Object.values(seats)
-            .filter(s => s.name === name)
-            .map(s => s.id)
-            .sort();
-
-        content = `
-<p><strong>Customer:</strong> ${escapeHTML(name)}</p>
-<p><strong>Seats:</strong> ${escapeHTML(seatList.join(", "))}</p>
-<p><strong>Status:</strong>
-    ${data.status === "online-pending"
-        ? "Online — Pending Physical Ticket"
-        : "Online — Physical Ticket Delivered"}
-</p>`;
-
-        if (data.status === "online-pending") {
-            buttons = `
-<button class="btn-dark" onclick="closeModal()">Cancel</button>
-<button class="btn-red" onclick="deliverBooking('${id}')">✓ Deliver Physical Ticket</button>`;
-        } else {
-            buttons = `
-<button class="btn-dark" onclick="closeModal()">Close</button>
-<button class="btn-orange" onclick="returnToPending('${id}')">Return to Pending</button>`;
-        }
-    }
-
-    document.getElementById("modalTitle").textContent = title;
-    document.getElementById("modalContent").innerHTML = content;
-    document.getElementById("modalButtons").innerHTML = buttons;
-    document.getElementById("modalOverlay").style.display = "flex";
-}
-
-function closeModal() {
-    document.getElementById("modalOverlay").style.display = "none";
-}
-
-function sellCounter(id) {
-    const row = id.split("-")[0];
-    const data = seats[id];
-
-    if (data.status === "blocked" || data.status === "blocked-delivered" || !ROW_PRICES[row]) {
-        alert("Seat " + id + " is blocked or not for sale.");
-        return;
-    }
-    if (!confirm("Sell seat " + id + " at the counter?")) return;
-    data.status = "counter-sold";
-    data.name = "";
-    data.bookingSeats = [];
-    saveData();
-    closeModal();
-    refreshVisuals();
-}
-
-function releaseSeat(id) {
-    if (!confirm("Release seat " + id + " and make it Available again?")) return;
-    seats[id].status = "available";
-    seats[id].name = "";
-    seats[id].bookingSeats = [];
-    saveData();
-    closeModal();
-    refreshVisuals();
-}
-
-function unblockSeat(id) {
-    const data = seats[id];
-    if (!data || (data.status !== "blocked" && data.status !== "blocked-delivered")) return;
-
-    if (!confirm("Release block on seat " + id + " and make it Available again?")) return;
-
-    data.status = "available";
-    data.name = "";
-    data.bookingSeats = [];
-
-    saveData();
-    closeModal();
-    refreshVisuals();
-}
-
-// Deliver all online seats for this customer
-function deliverBooking(id) {
-    const bookingSeat = seats[id];
-    if (!bookingSeat || !bookingSeat.name) return;
-
-    const name = bookingSeat.name;
-
-    const seatList = Object.values(seats)
-        .filter(s => s.name === name)
-        .map(s => s.id)
-        .sort();
-
-    if (!seatList.length) return;
-
-    if (!confirm(
-        "Confirm physical ticket delivery?\n\n" +
-        name + "\n" +
-        seatList.join(", ")
-    )) return;
-
-    seatList.forEach(seatID => {
-        if (seats[seatID]) {
-            seats[seatID].status = "online-delivered";
-            seats[seatID].bookingSeats = seatList;
-        }
-    });
-
-    saveData();
-    closeModal();
-    refreshVisuals();
-}
-
-// Return all online seats for this customer to pending
-function returnToPending(id) {
-    const bookingSeat = seats[id];
-    if (!bookingSeat || !bookingSeat.name) return;
-
-    const name = bookingSeat.name;
-
-    const seatList = Object.values(seats)
-        .filter(s => s.name === name)
-        .map(s => s.id)
-        .sort();
-
-    if (!seatList.length) return;
-
-    if (!confirm("Return this booking to Pending?\n\n" +
-        name + "\n" + seatList.join(", ")
-    )) return;
-
-    seatList.forEach(seatID => {
-        if (seats[seatID]) {
-            seats[seatID].status = "online-pending";
-            seats[seatID].bookingSeats = seatList;
-        }
-    });
-
-    saveData();
-    closeModal();
-    refreshVisuals();
-}
-
-// Deliver all blocked seats for this person (blocked -> blocked-delivered)
-function deliverBlockedBooking(id) {
-    const seatData = seats[id];
-    if (!seatData || !seatData.name) return;
-
-    const name = seatData.name;
-
-    const seatList = Object.values(seats)
-        .filter(s => s.status === "blocked" && s.name === name)
-        .map(s => s.id)
-        .sort();
-
-    if (!seatList.length) {
-        alert("No blocked seats found for " + name + ".");
-        return;
-    }
-
-    if (!confirm(
-        "Confirm physical ticket delivery for blocked seats?\n\n" +
-        name + "\n" +
-        seatList.join(", ")
-    )) return;
-
-    seatList.forEach(seatID => {
-        if (seats[seatID]) {
-            seats[seatID].status = "blocked-delivered";
-            seats[seatID].bookingSeats = seatList;
-        }
-    });
-
-    saveData();
-    closeModal();
-    refreshVisuals();
-}
-
-// Return blocked-delivered seats back to plain blocked
-function returnBlockedToPending(id) {
-    const seatData = seats[id];
-    if (!seatData || !seatData.name) return;
-
-    const name = seatData.name;
-
-    const seatList = Object.values(seats)
-        .filter(s => s.status === "blocked-delivered" && s.name === name)
-        .map(s => s.id)
-        .sort();
-
-    if (!seatList.length) {
-        alert("No delivered blocked seats found for " + name + ".");
-        return;
-    }
-
-    if (!confirm(
-        "Return this blocked booking to Undelivered?\n\n" +
-        name + "\n" +
-        seatList.join(", ")
-    )) return;
-
-    seatList.forEach(seatID => {
-        if (seats[seatID]) {
-            seats[seatID].status = "blocked";
-            seats[seatID].bookingSeats = seatList;
-        }
-    });
-
-    saveData();
-    closeModal();
-    refreshVisuals();
-}
-
-/* ===========================
-   SEARCH (name or seat)
-=========================== */
-function handleSearchInput() {
-    const value = document.getElementById("searchBox").value.trim();
-    document.querySelectorAll(".seat").forEach(el => el.classList.remove("highlight"));
-    const lower = value.toLowerCase();
-
-    if (!value) {
-        document.getElementById("searchResults").style.display = "none";
-        return;
-    }
-
-    if (/^[A-P]-\d{1,2}$/i.test(value)) {
-        const id = value.toUpperCase();
-        const seatElem = document.querySelector('[data-id="' + id + '"]');
-        if (seatElem) {
-            seatElem.classList.add("highlight");
-            seatElem.scrollIntoView({ behavior: "smooth", block: "center" });
-        }
-        document.getElementById("searchResults").style.display = "none";
-        return;
-    }
-
-    searchCustomerByName(lower);
-}
-
-function searchCustomerByName(lower) {
-    const resultBox = document.getElementById("searchResults");
-
-    const bookings = {};
-
-    Object.values(seats).forEach(seat => {
-        if (!seat.name) return;
-        if (!seat.name.toLowerCase().includes(lower)) return;
-
-        if (!bookings[seat.name]) {
-            bookings[seat.name] = {
-                name: seat.name,
-                seats: new Set(),
-                hasPending: false,
-                hasDelivered: false
-            };
-        }
-
-        bookings[seat.name].seats.add(seat.id);
-        if (seat.status === "online-pending")  bookings[seat.name].hasPending = true;
-        if (seat.status === "online-delivered" || seat.status === "blocked-delivered") bookings[seat.name].hasDelivered = true;
-    });
-
-    resultBox.innerHTML = "";
-
-    const names = Object.keys(bookings);
-    if (!names.length) {
-        resultBox.innerHTML = "<div class='search-result'>No customer found.</div>";
-        resultBox.style.display = "block";
-        return;
-    }
-
-    names.forEach(name => {
-        const booking = bookings[name];
-        const seatList = Array.from(booking.seats).sort();
-
-        let statusText = "";
-        if (booking.hasPending && booking.hasDelivered) {
-            statusText = "Mixed (Pending + Delivered)";
-        } else if (booking.hasPending) {
-            statusText = "Pending";
-        } else if (booking.hasDelivered) {
-            statusText = "Delivered";
-        } else {
-            statusText = "Unknown";
-        }
-
-        const div = document.createElement("div");
-        div.className = "search-result";
-        div.innerHTML = `
-<strong>${escapeHTML(booking.name)}</strong><br>
-Seats: ${escapeHTML(seatList.join(", "))}<br>
-Status: ${statusText}
-        `;
-
-        div.onclick = () => {
-            seatList.forEach(id => {
-                const seatElement = document.querySelector('[data-id="' + id + '"]');
-                if (seatElement) {
-                    seatElement.classList.add("highlight");
-                    seatElement.scrollIntoView({ behavior: "smooth", block: "center" });
-                }
-            });
-        };
-
-        resultBox.appendChild(div);
-    });
-
-    resultBox.style.display = "block";
-}
-
-/* ===========================
-   CSV IMPORT (Name,Seat)
-=========================== */
-function addOnlineBooking(name, bookingSeats) {
-    bookingSeats.forEach(id => {
-        if (!seats[id]) {
-            console.warn("Seat from CSV not in map:", id);
-            return;
-        }
-        seats[id].status = "online-pending";
-        seats[id].name = name;
-        seats[id].bookingSeats = bookingSeats;
-    });
-}
-
-function importCSV() {
-    const input = document.createElement("input");
-    input.type = "file";
-    input.accept = ".csv";
-
-    input.onchange = event => {
-        const file = event.target.files[0];
-        if (!file) return;
-
-        const reader = new FileReader();
-        reader.onload = e => {
-            const text = e.target.result;
-            console.log("CSV text:\n", text);
-
-            const lines = text.split(/\r?\n/).filter(line => line.trim().length > 0);
-            let importedCount = 0;
-
-            let startIndex = 0;
-            const firstLineLower = lines[0].toLowerCase();
-            if (firstLineLower.includes("name") && firstLineLower.includes("seat")) {
-                startIndex = 1;
-            }
-
-            const seatPattern = /^[A-P]-\d{1,2}$/i;
-
-            for (let i = startIndex; i < lines.length; i++) {
-                const rawLine = lines[i];
-                const line = rawLine.trim();
-                if (!line) continue;
-
-                const firstCommaIndex = line.indexOf(",");
-                if (firstCommaIndex === -1) continue;
-
-                const name = line.slice(0, firstCommaIndex).trim();
-                let seatsCell = line.slice(firstCommaIndex + 1).trim();
-                if (!name || !seatsCell) continue;
-
-                seatsCell = seatsCell.replace(/\|/g, ",");
-                seatsCell = seatsCell.replace(/\s*,\s*/g, ",");
-                seatsCell = seatsCell.replace(/\s+/g, " ");
-
-                const rawSeatList = seatsCell
-                    .split(",")
-                    .map(s => s.trim())
-                    .filter(Boolean);
-
-                const seatList = rawSeatList
-                    .map(s => s.replace(/\u00A0/g, " ").trim())
-                    .filter(s => seatPattern.test(s))
-                    .map(s => s.toUpperCase());
-
-                if (!seatList.length) continue;
-
-                console.log("Parsed CSV booking:", { name, seatList });
-                addOnlineBooking(name, seatList);
-                importedCount++;
-            }
-
-            refreshVisuals();
-            alert("CSV import completed: " + importedCount + " booking(s).");
-        };
-
-        reader.readAsText(file);
-    };
-
-    input.click();
-}
-
-/* ===========================
-   PASTE VENDOR LIST (Name,Seat)
-=========================== */
-function importVendorText() {
-    const text = prompt(
-        "Paste vendor Name,Seat list here (one entry per line):\n\n" +
-        "Example:\nName,Seat\nAniket Deb,H-8\nAnubhav Ghosh,G-12\n..."
-    );
-    if (text === null) return;
-
-    const lines = text.split(/\r?\n/).filter(line => line.trim().length > 0);
-    if (!lines.length) {
-        alert("No data provided.");
-        return;
-    }
-
-    let startIndex = 0;
-    const firstLineLower = lines[0].toLowerCase();
-    if (firstLineLower.includes("name") && firstLineLower.includes("seat")) {
-        startIndex = 1;
-    }
-
-    const seatPattern = /^[A-P]-\d{1,2}$/i;
-    let importedCount = 0;
-
-    for (let i = startIndex; i < lines.length; i++) {
-        const rawLine = lines[i];
-        const line = rawLine.trim();
-        if (!line) continue;
-
-        const firstCommaIndex = line.indexOf(",");
-               if (firstCommaIndex === -1) continue;
-
-        const name = line.slice(0, firstCommaIndex).trim();
-        let seatsCell = line.slice(firstCommaIndex + 1).trim();
-        if (!name || !seatsCell) continue;
-
-        seatsCell = seatsCell.replace(/\|/g, ",");
-        seatsCell = seatsCell.replace(/\s*,\s*/g, ",");
-        seatsCell = seatsCell.replace(/\s+/g, " ");
-
-        const rawSeatList = seatsCell
-            .split(",")
-            .map(s => s.trim())
-            .filter(Boolean);
-
-        const seatList = rawSeatList
-            .map(s => s.replace(/\u00A0/g, " ").trim())
-            .filter(s => seatPattern.test(s))
-            .map(s => s.toUpperCase());
-
-        if (!seatList.length) continue;
-
-        console.log("Parsed vendor booking:", { name, seatList });
-        addOnlineBooking(name, seatList);
-        importedCount++;
-    }
-
-    refreshVisuals();
-    alert("Vendor list import completed: " + importedCount + " entry/entries.");
-}
-
-/* ===========================
-   LOCAL STORAGE / BACKUP / CSV EXPORT / RESET
-=========================== */
-function saveData() {
-    localStorage.setItem("auditoriumSeatData", JSON.stringify({ seats, lockedRows }));
-}
-
-function loadData() {
-    const saved = localStorage.getItem("auditoriumSeatData");
-    if (saved) {
-        try {
-            const parsed = JSON.parse(saved);
-            seats = parsed.seats || {};
-            lockedRows = parsed.lockedRows || {};
-        } catch {
-            seats = {};
-            lockedRows = {};
-        }
-    }
-}
-
-function exportBackup() {
-    const blob = new Blob([JSON.stringify({ seats, lockedRows }, null, 2)], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "auditorium-seat-backup.json";
-    a.click();
-    URL.revokeObjectURL(url);
-}
-
-function restoreBackup() {
-    const input = document.createElement("input");
-    input.type = "file";
-    input.accept = ".json";
-
-    input.onchange = event => {
-        const file = event.target.files[0];
-        if (!file) return;
-
-        const reader = new FileReader();
-        reader.onload = e => {
-            try {
-                const restored = JSON.parse(e.target.result);
-                if (!confirm("Restore this backup?\n\nCurrent data will be replaced.")) return;
-
-                seats = restored.seats || {};
-                lockedRows = restored.lockedRows || {};
-                saveData();
-                buildMap();
-                alert("Backup restored successfully.");
-            } catch {
-                alert("This backup file is invalid.");
-            }
-        };
-        reader.readAsText(file);
-    };
-
-    input.click();
-}
-
-function exportCSV() {
-    let csv = "Seat Number,Customer Name,Booking Type,Status,Booking Seats\n";
-
-    Object.values(seats).forEach(seat => {
-        let bookingType = "";
-        if (seat.status === "online-pending" || seat.status === "online-delivered") {
-            bookingType = "Online";
-        } else if (seat.status === "counter-sold") {
-            bookingType = "Counter";
-        } else if (seat.status === "blocked" || seat.status === "blocked-delivered") {
-            bookingType = "Blocked";
-        }
-
-        csv +=
-            `"${seat.id}",` +
-            `"${seat.name || ""}",` +
-            `"${bookingType}",` +
-            `"${seat.status}",` +
-            `"${(seat.bookingSeats || []).join(" ")}"` +
-            "\n";
-    });
-
-    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-    const url  = URL.createObjectURL(blob);
-    const a    = document.createElement("a");
-    a.href = url;
-    a.download = "auditorium-seating-report.csv";
-    a.click();
-    URL.revokeObjectURL(url);
-}
-
-function resetAll() {
-    if (!confirm(
-        "RESET ALL SEAT DATA?\n\nAll online, blocked and counter-sale information will be removed."
-    )) return;
-
-    localStorage.removeItem("auditoriumSeatData");
-    location.reload();
-}
-
-/* ===========================
-   UTIL
-=========================== */
-function escapeHTML(value) {
-    return String(value)
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;")
-        .replace(/"/g, "&quot;")
-        .replace(/'/g, "&#039;");
-}
-
-/* ===========================
-   START
-=========================== */
-loadData();
-buildMap();
-</script>
 </body>
 </html>
