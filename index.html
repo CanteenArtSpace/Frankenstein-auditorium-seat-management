@@ -55,7 +55,7 @@
     .counter-stat   { background: #7bd4df; }   /* Counter Sold */
     .total-money-stat { background: #f9d7a3; } /* Counter total */
 
-    /* CONTROLS & BUTTONS */
+    /* CONTROLS & BUTTONS (no reset here) */
     .controls {
         display: flex;
         justify-content: center;
@@ -90,6 +90,24 @@
         font-size: 13px;
         background: #fff9e9;
         color: #3a2620;
+    }
+
+    /* RESET AREA (far from other controls) */
+    .reset-area {
+        margin-top: 35px;
+        padding: 20px;
+        text-align: center;
+        background: #f8ecd3;
+        border-top: 1px solid #b8976f;
+    }
+    .reset-area button {
+        margin-top: 10px;
+    }
+    .reset-warning {
+        color: #8a1f1f;
+        font-size: 12px;
+        max-width: 600px;
+        margin: 8px auto 0;
     }
 
     /* LEGENDS */
@@ -142,7 +160,7 @@
     }
 
     /* Ticket zone colours */
-    .zone-500 { background: #f3c36a; } /* front premium */
+    .zone-500 { background: #f3c36a; }
     .zone-300 { background: #e6d07d; }
     .zone-200 { background: #d9c581; }
     .zone-100 { background: #ccb38a; }
@@ -191,16 +209,16 @@
         display: flex;
         flex-direction: column;
         justify-content: flex-start;
-        gap: 4px;               /* same as seat-block gap */
+        gap: 4px;
         margin-right: 4px;
         font-size: 14px;
-        line-height: normal;    /* no extra line-height */
+        line-height: normal;
         color: #3a2620;
         font-family: "Courier New", monospace;
     }
     .row-labels div {
-        width: 30px;            /* match seat width */
-        height: 30px;           /* match seat height */
+        width: 30px;
+        height: 30px;
         display: flex;
         align-items: center;
         justify-content: center;
@@ -414,7 +432,16 @@
   <button class="btn-dark" onclick="restoreBackup()">Restore</button>
   <button class="btn-dark" onclick="exportCSV()">Export CSV</button>
   <button class="btn-dark" onclick="clearSelectedSeats()">Clear Selected</button>
-  <button class="btn-red" onclick="resetAll()">Reset</button>
+</div>
+
+<div class="reset-area">
+  <button class="btn-red" onclick="resetAll()">
+    DANGER: FULL RESET (USE ONLY IN EMERGENCY)
+  </button>
+  <p class="reset-warning">
+    This will permanently erase all online, blocked, and counter-sale data stored in this browser.
+    Make sure you have exported a backup CSV / JSON before using.
+  </p>
 </div>
 
 <div class="search-results" id="searchResults"></div>
@@ -544,7 +571,7 @@ const COLS_PER_ROW = 18;
 const LEFT_COLS   = 9;
 const RIGHT_COLS  = 9;
 
-/* ========== CARPET / TICKET ZONE MAPPING (for labels) ========== */
+/* Carpet / ticket zone mapping for labels */
 function getZoneClassForRow(row) {
     if (row === "A" || row === "B") return "zone-500";
     if (["C","D","E","F"].includes(row)) return "zone-300";
@@ -569,17 +596,15 @@ function applyRowZoneClasses() {
     });
 }
 
-/* ===========================
-   SEATING LAYOUT
-=========================== */
-
+/* Seating layout */
 function createSeat(id, container) {
     if (!seats[id]) {
         seats[id] = {
-            id: id,
+            id,
             status: "available",
             name: "",
             bookingSeats: [],
+            bookingKey: "",   // used for online bookings (name + orderId)
             locked: false
         };
     }
@@ -625,14 +650,11 @@ function buildMap() {
     refreshVisuals();
 }
 
-/* ===========================
-   CLICK HANDLING
-=========================== */
+/* Click handling */
 function seatClicked(id, seatElem) {
     const data = seats[id];
     const row = id.split("-")[0];
 
-    // Online, counter, or blocked seats open modal
     if (
         data.status === "online-pending" ||
         data.status === "online-delivered" ||
@@ -645,16 +667,13 @@ function seatClicked(id, seatElem) {
         return;
     }
 
-    // Available: toggle selection and update total
     if (data.status === "available") {
         seatElem.classList.toggle("selected");
         recalcCounterSaleTotal();
     }
 }
 
-/* ===========================
-   COUNTER SALE TOTAL
-=========================== */
+/* Counter sale total */
 function recalcCounterSaleTotal() {
     let total = 0;
     const selected = Array.from(document.querySelectorAll(".seat.selected"));
@@ -668,9 +687,6 @@ function recalcCounterSaleTotal() {
     document.getElementById("counterTotal").textContent = counterSaleTotal;
 }
 
-/* ===========================
-   CLEAR SELECTED
-=========================== */
 function clearSelectedSeats() {
     document.querySelectorAll(".seat.selected").forEach(seatElem => {
         seatElem.classList.remove("selected");
@@ -679,9 +695,7 @@ function clearSelectedSeats() {
     document.getElementById("counterTotal").textContent = counterSaleTotal;
 }
 
-/* ===========================
-   SELL SELECTED COUNTER
-=========================== */
+/* Sell selected at counter */
 function sellSelectedCounter() {
     const selected = Array.from(document.querySelectorAll(".seat.selected"));
     if (!selected.length) {
@@ -702,18 +716,19 @@ function sellSelectedCounter() {
             data.status = "counter-sold";
             data.name = "";
             data.bookingSeats = [];
+            data.bookingKey = "";
         }
     });
 
-    document.querySelectorAll(".seat.selected").forEach(s => s.classList.remove("selected"));
-    counterSaleTotal = 0;
-    document.getElementById("counterTotal").textContent = counterSaleTotal;
+    clearSelectedSeats();
     refreshVisuals();
 }
 
-/* ===========================
-   BLOCK SELECTED SEATS
-=========================== */
+/* Block selected seats – enforce unique name */
+function isBlockedNameAlreadyUsed(name) {
+    return Object.values(seats).some(seat => seat.status === "blocked" && seat.name === name);
+}
+
 function blockSelectedSeats() {
     const selected = Array.from(document.querySelectorAll(".seat.selected"));
     if (!selected.length) {
@@ -721,10 +736,22 @@ function blockSelectedSeats() {
         return;
     }
 
-    const blockName = prompt("Enter name or reason for blocking selected seats (e.g. VIP Guest, Reserved):");
+    let blockName = prompt(
+        "Enter UNIQUE name or reference for blocking selected seats\n" +
+        "(e.g. 'VIP Guest | Ref#123')."
+    );
     if (blockName === null) return;
-    const name = blockName.trim();
-    if (!name) return;
+    blockName = blockName.trim();
+    if (!blockName) return;
+
+    if (isBlockedNameAlreadyUsed(blockName)) {
+        alert(
+            "This name is already used for blocked seats.\n\n" +
+            "Please include an extra identifier (e.g. 'Name | Ref#123') so " +
+            "each blocked group is unique."
+        );
+        return;
+    }
 
     selected.forEach(seatElem => {
         const id = seatElem.dataset.id;
@@ -733,20 +760,17 @@ function blockSelectedSeats() {
 
         if (data.status === "available" && ROW_PRICES[row]) {
             data.status = "blocked";
-            data.name = name;
+            data.name = blockName;
             data.bookingSeats = [];
+            data.bookingKey = ""; // blocked uses unique name only
         }
     });
 
-    document.querySelectorAll(".seat.selected").forEach(s => s.classList.remove("selected"));
-    counterSaleTotal = 0;
-    document.getElementById("counterTotal").textContent = counterSaleTotal;
+    clearSelectedSeats();
     refreshVisuals();
 }
 
-/* ===========================
-   REFRESH / DASHBOARD
-=========================== */
+/* Refresh / dashboard */
 function refreshVisuals() {
     document.querySelectorAll(".seat").forEach(el => {
         const id = el.dataset.id;
@@ -775,7 +799,7 @@ function updateDashboard() {
     document.getElementById("counterCount").textContent    = counter;
 }
 
-/* TOOLTIP */
+/* Tooltip */
 function showTooltip(event, id) {
     const data = seats[id];
     const row = id.split("-")[0];
@@ -803,7 +827,8 @@ function showTooltip(event, id) {
     } else if (data.status === "counter-sold") {
         text += "Status: Counter Sold";
     } else {
-        text += "Customer: <strong>" + escapeHTML(data.name) + "</strong><br>";
+        const key = data.bookingKey || data.name;
+        text += "Customer: <strong>" + escapeHTML(key) + "</strong><br>";
         text += "Booking seats: " + escapeHTML(data.bookingSeats.join(", ")) + "<br>";
         if (data.status === "online-pending") {
             text += "Status: Online — Pending";
@@ -828,7 +853,21 @@ function hideTooltip() {
     document.getElementById("tooltip").style.display = "none";
 }
 
-/* MODAL / CLICK ACTIONS */
+/* Booking grouping helper for online */
+function getBookingsForName(rawName) {
+    const map = {};
+    Object.values(seats).forEach(seat => {
+        if (!seat.name || seat.name !== rawName) return;
+        const key = seat.bookingKey || (seat.name + " | NOID");
+        if (!map[key]) {
+            map[key] = { bookingKey: key, seats: [] };
+        }
+        map[key].seats.push(seat.id);
+    });
+    return map;
+}
+
+/* Modal / click actions */
 function openSeat(id) {
     const data = seats[id];
 
@@ -870,31 +909,53 @@ function openSeat(id) {
         buttons = `
 <button class="btn-dark" onclick="closeModal()">Cancel</button>
 <button class="btn-green" onclick="sellCounter('${id}')">Sell at Counter</button>`;
+    } else if (data.status === "online-pending") {
+        const rawName = data.name;
+        const bookings = getBookingsForName(rawName);
+        const keys = Object.keys(bookings);
+
+        let listHtml = "";
+        keys.forEach(key => {
+            const info = bookings[key];
+            const parts = key.split("|");
+            const namePart = parts[0].trim();
+            const orderId = parts[1] ? parts[1].trim() : "NOID";
+            const seatsStr = info.seats.sort().join(", ");
+            listHtml += `
+<label style="display:block; margin-bottom:6px;">
+  <input type="checkbox" data-booking-key="${escapeHTML(key)}" checked>
+  ${escapeHTML(namePart)}, ${escapeHTML(orderId)}, ${escapeHTML(seatsStr)}
+</label>`;
+        });
+
+        content = `
+<p><strong>Customer:</strong> ${escapeHTML(rawName)}</p>
+<p><strong>Pending Orders:</strong></p>
+<div>${listHtml}</div>
+<p><strong>Note:</strong> Select which orders to mark as delivered.</p>`;
+
+        buttons = `
+<button class="btn-dark" onclick="closeModal()">Cancel</button>
+<button class="btn-red" onclick="deliverSelectedOrders('${escapeHTML(rawName)}')">
+  ✓ Deliver Selected Orders
+</button>`;
     } else {
-        const name = data.name;
+        const rawName = data.name;
         const seatList = Object.values(seats)
-            .filter(s => s.name === name)
+            .filter(s => s.name === rawName)
             .map(s => s.id)
             .sort();
 
         content = `
-<p><strong>Customer:</strong> ${escapeHTML(name)}</p>
+<p><strong>Customer:</strong> ${escapeHTML(rawName)}</p>
 <p><strong>Seats:</strong> ${escapeHTML(seatList.join(", "))}</p>
-<p><strong>Status:</strong>
-    ${data.status === "online-pending"
-        ? "Online — Pending Physical Ticket"
-        : "Online — Physical Ticket Delivered"}
-</p>`;
+<p><strong>Status:</strong> Online — Physical Ticket Delivered</p>`;
 
-        if (data.status === "online-pending") {
-            buttons = `
-<button class="btn-dark" onclick="closeModal()">Cancel</button>
-<button class="btn-red" onclick="deliverBooking('${id}')">✓ Deliver Physical Ticket</button>`;
-        } else {
-            buttons = `
+        buttons = `
 <button class="btn-dark" onclick="closeModal()">Close</button>
-<button class="btn-orange" onclick="returnToPending('${id}')">Return to Pending</button>`;
-        }
+<button class="btn-orange" onclick="returnToPending('${id}')">
+  Return to Pending (all seats)
+</button>`;
     }
 
     document.getElementById("modalTitle").textContent = title;
@@ -919,6 +980,7 @@ function sellCounter(id) {
     data.status = "counter-sold";
     data.name = "";
     data.bookingSeats = [];
+    data.bookingKey = "";
     saveData();
     closeModal();
     refreshVisuals();
@@ -929,6 +991,7 @@ function releaseSeat(id) {
     seats[id].status = "available";
     seats[id].name = "";
     seats[id].bookingSeats = [];
+    seats[id].bookingKey = "";
     saveData();
     closeModal();
     refreshVisuals();
@@ -943,17 +1006,49 @@ function unblockSeat(id) {
     data.status = "available";
     data.name = "";
     data.bookingSeats = [];
+    data.bookingKey = "";
+    saveData();
+    closeModal();
+    refreshVisuals();
+}
+
+/* Deliver selected orders (multi-order dialog) */
+function deliverSelectedOrders(rawName) {
+    const modalContent = document.getElementById("modalContent");
+    const checkboxes = modalContent.querySelectorAll("input[type='checkbox'][data-booking-key]");
+    const keysToDeliver = [];
+    checkboxes.forEach(cb => {
+        if (cb.checked) keysToDeliver.push(cb.getAttribute("data-booking-key"));
+    });
+
+    if (!keysToDeliver.length) {
+        alert("No orders selected to deliver.");
+        return;
+    }
+
+    if (!confirm(
+        "Deliver physical tickets for selected orders?\n\n" +
+        keysToDeliver.join("\n")
+    )) return;
+
+    keysToDeliver.forEach(key => {
+        Object.values(seats).forEach(seat => {
+            const seatKey = seat.bookingKey || (seat.name + " | NOID");
+            if (seatKey === key) {
+                seat.status = "online-delivered";
+            }
+        });
+    });
 
     saveData();
     closeModal();
     refreshVisuals();
 }
 
-// Deliver all online seats for this customer
+/* Deliver / return for online & blocked (same logic as earlier) */
 function deliverBooking(id) {
     const bookingSeat = seats[id];
     if (!bookingSeat || !bookingSeat.name) return;
-
     const name = bookingSeat.name;
 
     const seatList = Object.values(seats)
@@ -962,7 +1057,6 @@ function deliverBooking(id) {
         .sort();
 
     if (!seatList.length) return;
-
     if (!confirm(
         "Confirm physical ticket delivery?\n\n" +
         name + "\n" +
@@ -981,11 +1075,9 @@ function deliverBooking(id) {
     refreshVisuals();
 }
 
-// Return all online seats for this customer to pending
 function returnToPending(id) {
     const bookingSeat = seats[id];
     if (!bookingSeat || !bookingSeat.name) return;
-
     const name = bookingSeat.name;
 
     const seatList = Object.values(seats)
@@ -994,7 +1086,6 @@ function returnToPending(id) {
         .sort();
 
     if (!seatList.length) return;
-
     if (!confirm("Return this booking to Pending?\n\n" +
         name + "\n" + seatList.join(", ")
     )) return;
@@ -1011,11 +1102,9 @@ function returnToPending(id) {
     refreshVisuals();
 }
 
-// Deliver all blocked seats for this person (blocked -> blocked-delivered)
 function deliverBlockedBooking(id) {
     const seatData = seats[id];
     if (!seatData || !seatData.name) return;
-
     const name = seatData.name;
 
     const seatList = Object.values(seats)
@@ -1046,11 +1135,9 @@ function deliverBlockedBooking(id) {
     refreshVisuals();
 }
 
-// Return blocked-delivered seats back to plain blocked
 function returnBlockedToPending(id) {
     const seatData = seats[id];
     if (!seatData || !seatData.name) return;
-
     const name = seatData.name;
 
     const seatList = Object.values(seats)
@@ -1081,7 +1168,7 @@ function returnBlockedToPending(id) {
     refreshVisuals();
 }
 
-/* SEARCH (name or seat) */
+/* SEARCH */
 function handleSearchInput() {
     const value = document.getElementById("searchBox").value.trim();
     document.querySelectorAll(".seat").forEach(el => el.classList.remove("highlight"));
@@ -1108,38 +1195,38 @@ function handleSearchInput() {
 
 function searchCustomerByName(lower) {
     const resultBox = document.getElementById("searchResults");
-
     const bookings = {};
 
     Object.values(seats).forEach(seat => {
         if (!seat.name) return;
-        if (!seat.name.toLowerCase().includes(lower)) return;
+        const key = seat.bookingKey || seat.name;
+        if (!key.toLowerCase().includes(lower)) return;
 
-        if (!bookings[seat.name]) {
-            bookings[seat.name] = {
-                name: seat.name,
+        if (!bookings[key]) {
+            bookings[key] = {
+                key,
                 seats: new Set(),
                 hasPending: false,
                 hasDelivered: false
             };
         }
 
-        bookings[seat.name].seats.add(seat.id);
-        if (seat.status === "online-pending")  bookings[seat.name].hasPending = true;
-        if (seat.status === "online-delivered" || seat.status === "blocked-delivered") bookings[seat.name].hasDelivered = true;
+        bookings[key].seats.add(seat.id);
+        if (seat.status === "online-pending")  bookings[key].hasPending = true;
+        if (seat.status === "online-delivered" || seat.status === "blocked-delivered") bookings[key].hasDelivered = true;
     });
 
     resultBox.innerHTML = "";
 
-    const names = Object.keys(bookings);
-    if (!names.length) {
-        resultBox.innerHTML = "<div class='search-result'>No customer found.</div>";
+    const keys = Object.keys(bookings);
+    if (!keys.length) {
+        resultBox.innerHTML = "<div class='search-result'>No booking found.</div>";
         resultBox.style.display = "block";
         return;
     }
 
-    names.forEach(name => {
-        const booking = bookings[name];
+    keys.forEach(key => {
+        const booking = bookings[key];
         const seatList = Array.from(booking.seats).sort();
 
         let statusText = "";
@@ -1156,11 +1243,10 @@ function searchCustomerByName(lower) {
         const div = document.createElement("div");
         div.className = "search-result";
         div.innerHTML = `
-<strong>${escapeHTML(booking.name)}</strong><br>
+<strong>${escapeHTML(booking.key)}</strong><br>
 Seats: ${escapeHTML(seatList.join(", "))}<br>
 Status: ${statusText}
         `;
-
         div.onclick = () => {
             seatList.forEach(id => {
                 const seatElement = document.querySelector('[data-id="' + id + '"]');
@@ -1177,15 +1263,18 @@ Status: ${statusText}
     resultBox.style.display = "block";
 }
 
-/* CSV IMPORT (Name,Seat) */
-function addOnlineBooking(name, bookingSeats) {
+/* CSV IMPORT (Name,OrderId,Seat) */
+function addOnlineBooking(rawName, orderId, bookingSeats) {
+    const bookingKey = rawName + " | " + orderId;
+
     bookingSeats.forEach(id => {
         if (!seats[id]) {
             console.warn("Seat from CSV not in map:", id);
             return;
         }
         seats[id].status = "online-pending";
-        seats[id].name = name;
+        seats[id].name = rawName;        // human-readable name
+        seats[id].bookingKey = bookingKey;
         seats[id].bookingSeats = bookingSeats;
     });
 }
@@ -1207,43 +1296,40 @@ function importCSV() {
 
             let startIndex = 0;
             const firstLineLower = lines[0].toLowerCase();
-            if (firstLineLower.includes("name") && firstLineLower.includes("seat")) {
-                startIndex = 1;
+            if (firstLineLower.includes("name") && firstLineLower.includes("order")) {
+                startIndex = 1; // header line
             }
 
             const seatPattern = /^[A-P]-\d{1,2}$/i;
+            const bookingsByKey = {}; // key -> { name, orderId, seats[] }
 
             for (let i = startIndex; i < lines.length; i++) {
                 const rawLine = lines[i];
                 const line = rawLine.trim();
                 if (!line) continue;
 
-                const firstCommaIndex = line.indexOf(",");
-                if (firstCommaIndex === -1) continue;
+                const parts = line.split(",");
+                if (parts.length < 3) continue;
 
-                const name = line.slice(0, firstCommaIndex).trim();
-                let seatsCell = line.slice(firstCommaIndex + 1).trim();
-                if (!name || !seatsCell) continue;
+                const rawName = parts[0].trim();
+                const orderId = parts[1].trim();
+                const seatStr = parts[2].trim();
+                if (!rawName || !orderId || !seatStr) continue;
 
-                seatsCell = seatsCell.replace(/\|/g, ",");
-                seatsCell = seatsCell.replace(/\s*,\s*/g, ",");
-                seatsCell = seatsCell.replace(/\s+/g, " ");
+                const seatId = seatStr.toUpperCase();
+                if (!seatPattern.test(seatId)) continue;
 
-                const rawSeatList = seatsCell
-                    .split(",")
-                    .map(s => s.trim())
-                    .filter(Boolean);
-
-                const seatList = rawSeatList
-                    .map(s => s.replace(/\u00A0/g, " ").trim())
-                    .filter(s => seatPattern.test(s))
-                    .map(s => s.toUpperCase());
-
-                if (!seatList.length) continue;
-
-                addOnlineBooking(name, seatList);
-                importedCount++;
+                const key = rawName + " | " + orderId;
+                if (!bookingsByKey[key]) {
+                    bookingsByKey[key] = { name: rawName, orderId, seats: [] };
+                }
+                bookingsByKey[key].seats.push(seatId);
             }
+
+            Object.values(bookingsByKey).forEach(b => {
+                addOnlineBooking(b.name, b.orderId, b.seats);
+                importedCount++;
+            });
 
             refreshVisuals();
             alert("CSV import completed: " + importedCount + " booking(s).");
@@ -1255,11 +1341,11 @@ function importCSV() {
     input.click();
 }
 
-/* PASTE VENDOR LIST */
+/* PASTE VENDOR LIST (Name,OrderId,Seat) */
 function importVendorText() {
     const text = prompt(
-        "Paste vendor Name,Seat list here (one entry per line):\n\n" +
-        "Example:\nName,Seat\nAniket Deb,H-8\nAnubhav Ghosh,G-12\n..."
+        "Paste vendor Name,OrderId,Seat list here (one entry per line):\n\n" +
+        "Example:\nName,OrderId,Seat\nAnubhav Ghosh,1046881,G-12\n..."
     );
     if (text === null) return;
 
@@ -1271,50 +1357,47 @@ function importVendorText() {
 
     let startIndex = 0;
     const firstLineLower = lines[0].toLowerCase();
-    if (firstLineLower.includes("name") && firstLineLower.includes("seat")) {
+    if (firstLineLower.includes("name") && firstLineLower.includes("order")) {
         startIndex = 1;
     }
 
     const seatPattern = /^[A-P]-\d{1,2}$/i;
     let importedCount = 0;
+    const bookingsByKey = {};
 
     for (let i = startIndex; i < lines.length; i++) {
         const rawLine = lines[i];
         const line = rawLine.trim();
         if (!line) continue;
 
-        const firstCommaIndex = line.indexOf(",");
-        if (firstCommaIndex === -1) continue;
+        const parts = line.split(",");
+        if (parts.length < 3) continue;
 
-        const name = line.slice(0, firstCommaIndex).trim();
-        let seatsCell = line.slice(firstCommaIndex + 1).trim();
-        if (!name || !seatsCell) continue;
+        const rawName = parts[0].trim();
+        const orderId = parts[1].trim();
+        const seatStr = parts[2].trim();
+        if (!rawName || !orderId || !seatStr) continue;
 
-        seatsCell = seatsCell.replace(/\|/g, ",");
-        seatsCell = seatsCell.replace(/\s*,\s*/g, ",");
-        seatsCell = seatsCell.replace(/\s+/g, " ");
+        const seatId = seatStr.toUpperCase();
+        if (!seatPattern.test(seatId)) continue;
 
-        const rawSeatList = seatsCell
-            .split(",")
-            .map(s => s.trim())
-            .filter(Boolean);
-
-        const seatList = rawSeatList
-            .map(s => s.replace(/\u00A0/g, " ").trim())
-            .filter(s => seatPattern.test(s))
-            .map(s => s.toUpperCase());
-
-        if (!seatList.length) continue;
-
-        addOnlineBooking(name, seatList);
-        importedCount++;
+        const key = rawName + " | " + orderId;
+        if (!bookingsByKey[key]) {
+            bookingsByKey[key] = { name: rawName, orderId, seats: [] };
+        }
+        bookingsByKey[key].seats.push(seatId);
     }
 
+    Object.values(bookingsByKey).forEach(b => {
+        addOnlineBooking(b.name, b.orderId, b.seats);
+        importedCount++;
+    });
+
     refreshVisuals();
-    alert("Vendor list import completed: " + importedCount + " entry/entries.");
+    alert("Vendor list import completed: " + importedCount + " booking(s).");
 }
 
-/* LOCAL STORAGE / BACKUP / CSV EXPORT / RESET */
+/* Backup / restore / CSV / reset */
 function exportBackup() {
     const blob = new Blob([JSON.stringify({ seats, lockedRows }, null, 2)], { type: "application/json" });
     const url = URL.createObjectURL(blob);
@@ -1374,7 +1457,7 @@ function loadData() {
 }
 
 function exportCSV() {
-    let csv = "Seat Number,Customer Name,Booking Type,Status,Booking Seats\n";
+    let csv = "Seat Number,Customer Name,Booking Key,Booking Type,Status,Booking Seats\n";
 
     Object.values(seats).forEach(seat => {
         let bookingType = "";
@@ -1389,6 +1472,7 @@ function exportCSV() {
         csv +=
             `"${seat.id}",` +
             `"${seat.name || ""}",` +
+            `"${seat.bookingKey || ""}",` +
             `"${bookingType}",` +
             `"${seat.status}",` +
             `"${(seat.bookingSeats || []).join(" ")}"` +
@@ -1406,14 +1490,19 @@ function exportCSV() {
 
 function resetAll() {
     if (!confirm(
-        "RESET ALL SEAT DATA?\n\nAll online, blocked and counter-sale information will be removed."
+        "WARNING: FULL RESET\n\n" +
+        "This will remove ALL seat data (online, blocked and counter) for this browser.\n" +
+        "Make sure you have exported a backup.\n\n" +
+        "Are you absolutely sure you want to continue?"
     )) return;
+
+    if (!confirm("Last warning: This cannot be undone. Proceed with full reset?")) return;
 
     localStorage.removeItem("auditoriumSeatData");
     location.reload();
 }
 
-/* UTIL */
+/* Util */
 function escapeHTML(value) {
     return String(value)
         .replace(/&/g, "&amp;")
@@ -1423,7 +1512,7 @@ function escapeHTML(value) {
         .replace(/'/g, "&#039;");
 }
 
-/* START */
+/* Start */
 loadData();
 buildMap();
 </script>
